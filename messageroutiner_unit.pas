@@ -16,23 +16,13 @@ uses
 
 const
 
-  version_number='0.2.12';
+  version_number = '0.2.12';
 
   RuleCount      = 9;{不能大于31，否则设置保存会出问题}
-  SynCount       = 4;{不能大于9，也不推荐9}
+  SynCount       = 4;{不能大于9，也不推荐9；也不推荐4以下，这会导致自动布局效果很差}
   ButtonColumn   = 9;{不能大于31，否则设置保存会出问题}
   AufPopupCount  = 5;{不能大于254，也不推荐大于5}
-
-  sp_thick=6;
-  WindowsListW=300;
-  //ARVControlH=170;
-  ARVControlW=150;//120太窄//原本是150，但是会在切换布局模式时造成ScrollBox_WndView的显示错误
-  SynchronicH=32;
-  SynchronicW=36;
-  SynWndButtonW=300;//原本是360
-  MainMenuH=34;//24;
-  StatusBarH=34;
-
+  sp_thick       = 6;
 
 type
 
@@ -356,6 +346,14 @@ type
         MainV,SyncV,ButtV,LeftH,RightH,RecH,Width,Height:longint;
       end;
     end;
+    SynchronicH:Integer;
+    SynchronicW:Integer;
+    ARVControlW:Integer;
+    SynWndButtonW:Integer;
+    WindowsListW:Integer;
+    MainMenuH:Integer;
+    ScrollBarW:Integer;
+    StatusBarH:Integer;
     Setting:record
       General:record
         Always_On_Top:boolean;//是否置顶
@@ -1669,6 +1667,17 @@ var i,j:byte;
     tmp:TTabSheet;
 begin
 
+  //按当前环境计算布局参数
+  MainMenuH:=GetSystemMetrics(SM_CYMENU);
+  ScrollBarW:=GetSystemMetrics(SM_CYVSCROLL);
+  SynchronicH:=Edit_TimerOffset.Height;
+  SynchronicW:=SynchronicH*3 div 2;
+  ARVControlW:=ScrollBarW+SynchronicH*max(1,SynCount-2)*ScreensList.VirtualScreenRect.Width div ScreensList.VirtualScreenRect.Height;
+  SynWndButtonW:=SynchronicH*12;
+  WindowsListW:=SynchronicH*12;
+  StatusBarH:=StatusBar.Height;
+
+
   Synthesis_mode:=false;
   Record_Mode:=false;
   Setting.RecOption.RecKey:=false;
@@ -1944,6 +1953,7 @@ begin
       end;
 
     end;
+
   //AdapterForm.Show;
 
 end;

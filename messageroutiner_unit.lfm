@@ -552,7 +552,7 @@ object Form_Routiner: TForm_Routiner
       Top = 0
       Width = 230
       Anchors = [akTop, akLeft, akRight]
-      Caption = '开始录制键盘'
+      Caption = '录制键盘'
       Font.Pitch = fpVariable
       Font.Quality = fqDraft
       OnClick = Button_Wnd_RecordClick
@@ -572,7 +572,7 @@ object Form_Routiner: TForm_Routiner
       Top = 28
       Width = 230
       Anchors = [akTop, akLeft, akRight]
-      Caption = '开始同步键盘'
+      Caption = '同步键盘'
       Font.Pitch = fpVariable
       Font.Quality = fqDraft
       OnClick = Button_Wnd_SynthesisClick
@@ -592,7 +592,7 @@ object Form_Routiner: TForm_Routiner
       Top = 56
       Width = 230
       Anchors = [akTop, akLeft, akRight]
-      Caption = '锁定窗口设置'
+      Caption = '锁定同步'
       Font.Pitch = fpVariable
       Font.Quality = fqDraft
       OnClick = Button_excelClick
@@ -1013,12 +1013,10 @@ object Form_Routiner: TForm_Routiner
         Top = 214
         Width = 356
         HorzScrollBar.Page = 1
-        VertScrollBar.Page = 116
-        VertScrollBar.Range = 131
+        VertScrollBar.Page = 131
         Anchors = [akTop, akLeft, akRight, akBottom]
-        AutoScroll = False
         ClientHeight = 152
-        ClientWidth = 326
+        ClientWidth = 352
         TabOrder = 2
         object Image_Ram: TImage
           AnchorSideLeft.Control = ScrollBox_ImageViewScroll
@@ -1026,7 +1024,7 @@ object Form_Routiner: TForm_Routiner
           AnchorSideTop.Control = ScrollBox_ImageViewScroll
           AnchorSideRight.Side = asrBottom
           AnchorSideBottom.Side = asrBottom
-          Left = 55
+          Left = 68
           Height = 101
           Top = 0
           Width = 216
