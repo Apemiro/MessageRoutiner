@@ -23,6 +23,8 @@ begin
   if not AAuf.CheckArgs(3) then exit;
   if not AAuf.TryArgToString(2,wind_name) then exit;
   if not AAuf.TryArgToARV(1,8,High(dword),[ARV_FixNum],tmp) then exit;
+  AufScpt.send_error('功能重构中');
+  {
   hd:=FindWindow(nil,PChar(utf8towincp(wind_name)));
   while (hd<>0) and hidden do begin
     hidden:=false;
@@ -32,7 +34,7 @@ begin
     if (info.rcWindow.Top<-info.rcWindow.Height) or (info.rcWindow.Top>Desktop.Height) then hidden:=true;
   end;
   dword_to_arv(hd,tmp);
-
+  }
 end;
 
 procedure getwind_top(Sender:TObject);
@@ -40,6 +42,7 @@ var AAuf:TAuf;
     AufScpt:TAufScript;
     tmp,name_tmp:TAufRamVar;
     hd:hwnd;
+    tmpWindow:TMR_Window;
     ntmp:array[0..255]of char;
 begin
   AufScpt:=Sender as TAufScript;
@@ -47,13 +50,13 @@ begin
   if not AAuf.CheckArgs(2) then exit;
   if not AAuf.TryArgToARV(1,4,High(dword),[ARV_FixNum],tmp) then exit;
   if AAuf.ArgsCount>2 then begin
-    if not AAuf.TryArgToARV(2,4,High(dword),[ARV_FixNum],name_tmp) then exit;
+    if not AAuf.TryArgToARV(2,4,High(dword),[ARV_Char],name_tmp) then exit;
   end else name_tmp.size:=0;
   hd:=GetForegroundWindow;
   dword_to_arv(hd,tmp);
   if name_tmp.size<>0 then begin
-    GetWindowText(hd,ntmp,min(name_tmp.size,240));
-    initiate_arv_str(wincptoutf8(ntmp),name_tmp);
+    tmpWindow:=WindowsTreeRoot.GetWindowByHWND(hd);
+    if tmpWindow<>nil then initiate_arv_str(tmpWindow.Name,name_tmp);
   end;
 end;
 
@@ -73,6 +76,8 @@ begin
   if not AAuf.TryArgToARV(3,8,High(dword),[ARV_FixNum],y) then exit;
   if not AAuf.TryArgToARV(4,8,High(dword),[ARV_FixNum],w) then exit;
   if not AAuf.TryArgToARV(5,8,High(dword),[ARV_FixNum],h) then exit;
+  AufScpt.send_error('功能重构中');
+  {
   if hd<>0 then begin
     GetWindowInfo(hd,info);
     dword_to_arv(info.rcWindow.Top,y);
@@ -85,154 +90,162 @@ begin
     dword_to_arv(Desktop.Width,w);
     dword_to_arv(Desktop.Height,h);
   end;
+  }
 end;
 
-procedure wndlist_update(Sender:TObject);
+procedure wndlist_refresh(Sender:TObject); //wndlist.refresh [-ui]
 var AAuf:TAuf;
     AufScpt:TAufScript;
-    filter_str,use_reg_str:string;
-    use_reg:boolean=false;
-begin
-  AufScpt:=Sender as TAufScript;
-  AAuf:=AufScpt.Auf as TAuf;
-  if not AAuf.CheckArgs(2) then exit;
-  if not AAuf.TryArgToString(1,filter_str) then exit;
-  if AAuf.ArgsCount>=3 then begin
-    if not AAuf.TryArgToString(2,use_reg_str) then exit;
-  end else use_reg_str:='';
-  case lowercase(use_reg_str) of
-    'on':use_reg:=true;
-    else use_reg:=false;
-  end;
-  Form_Routiner.TreeView_Wnd.items.clear;
-  WndFinder(filter_str,use_reg);
-  //Form_Routiner.Memo_Tmp.Clear;
-  //for use_reg_str in WndFlat do AufScpt.writeln(use_reg_str);
-  WndTmp.Clear;//如果刷新列表之后再wndnew.pop，列表里的TWindow就会出错。
-  Application.ProcessMessages;
-end;
-
-procedure wndlist_find(Sender:TObject);
-var AAuf:TAuf;
-    AufScpt:TAufScript;
-    filter_str,use_reg_str:string;
-    use_reg:boolean=false;
-  function CheckWnd(WndName:string):boolean;
-  begin
-    try
-       if use_reg then result:=Reg.Exec(WndName)
-       else result:=pos(filter_str,WndName)>0;
-    except
-      result:=false;
-    end;
-  end;
+    update_to_treeview:string;
 
 begin
   AufScpt:=Sender as TAufScript;
   AAuf:=AufScpt.Auf as TAuf;
-  if not AAuf.CheckArgs(2) then exit;
-  if not AAuf.TryArgToString(1,filter_str) then exit;
-  if AAuf.ArgsCount>=3 then begin
-    AAuf.TryArgToString(2,use_reg_str);
-  end else use_reg_str:='';
-  case lowercase(use_reg_str) of
-    'on':use_reg:=true;
-    else use_reg:=false;
-  end;
-  Reg.Expression:=filter_str;
-  for use_reg_str in WndFlat do begin
-    if CheckWnd(use_reg_str) then AufScpt.writeln(use_reg_str);
-  end;
-end;
-
-procedure wndlist_new_init(Sender:TObject);//wndnew.init
-var AAuf:TAuf;
-    AufScpt:TAufScript;
-    stmp:string;
-begin
-  AufScpt:=Sender as TAufScript;
-  AAuf:=AufScpt.Auf as TAuf;
-  WndSub.Clear;
-  for stmp in WndFlat do WndSub.Add(stmp);
-end;
-
-procedure wndlist_new_update(Sender:TObject);//wndnew.update filter,use_reg[,-show]
-var AAuf:TAuf;
-    AufScpt:TAufScript;
-    filter_str,use_reg_str,show_list_str:string;
-    use_reg:boolean;
-    pi,useless:integer;
-    show_list:boolean;
-  function CheckWnd(WndName:string):boolean;
-  begin
-    try
-      if use_reg then result:=Reg.Exec(WndName)
-      else result:=pos(filter_str,WndName)>0;
-    except
-      result:=false;
-    end;
-  end;
-begin
-  AufScpt:=Sender as TAufScript;
-  AAuf:=AufScpt.Auf as TAuf;
-  if not AAuf.CheckArgs(2) then exit;
-  if not AAuf.TryArgToString(1,filter_str) then exit;
-  if AAuf.ArgsCount>=3 then begin
-    if not AAuf.TryArgToString(2,use_reg_str) then exit;
-  end else use_reg_str:='';
-  if AAuf.ArgsCount>=4 then begin
-    if not AAuf.TryArgToStrParam(3,['-show','-list','-quiet'],false,show_list_str) then exit;
-  end else show_list_str:='-quiet';
-  show_list:=not(lowercase(show_list_str)='-quiet');
-  case lowercase(use_reg_str) of
-    'on':use_reg:=true;
-    else use_reg:=false;
-  end;
-  WndTmp.Clear;
-  for pi:=0 to WndFlat.Count-1 do begin
-    WndTmp.Add(WndFlat[pi]);
-    WndTmp.Objects[pi]:=WndFlat.Objects[pi];
-  end;
-  pi:=0;
-  while pi<WndTmp.Count do begin
-    if WndSub.Find(WndTmp[pi],useless) then
-      WndTmp.Delete(pi)
-    else begin
-      if show_list then AufScpt.writeln(WndTmp[pi]);
-      inc(pi);
-    end;
-  end;
-end;
-
-procedure wndlist_new_pop(Sender:TObject);//wndnew.pop @hwnd
-var AAuf:TAuf;
-    AufScpt:TAufScript;
-    tmp:TAufRamVar;
-begin
-  AufScpt:=Sender as TAufScript;
-  AAuf:=AufScpt.Auf as TAuf;
-  if not AAuf.CheckArgs(2) then exit;
-  if not AAuf.TryArgToARV(1,8,High(Dword),[ARV_FixNum],tmp) then exit;
-  if WndTmp.Count>0 then begin
-    dword_to_arv(TWindow(WndTmp.Objects[0]).info.hd,tmp);
-    WndTmp.Delete(0);
+  if AAuf.ArgsCount>=2 then begin
+    if not AAuf.TryArgToStrParam(1,['-ui'],false,update_to_treeview) then exit;
+    Form_Routiner.WindowsFilter;
   end else begin
-    dword_to_arv(0,tmp);
+    WindowsTreeRoot.UpdateAsDesktop;
+    WindowsTreeRoot.UpdateChildren;
   end;
 end;
 
-procedure wndlist_new_empty(Sender:TObject);//wndnew.empty? :label
+procedure recur_getlist(wind:TMR_Window;arr:TAufArray);
+var tmpW:TMR_Window;
+begin
+  arr.Append(TAufBase.CreateAsFixnum(wind.Handle));
+  for tmpW in wind do recur_getlist(tmpW, arr);
+end;
+
+procedure wndlist_getlist(Sender:TObject); //wndlist.getlist @arr
 var AAuf:TAuf;
     AufScpt:TAufScript;
-    line:pRam;
+    arr:TObject;
 begin
   AufScpt:=Sender as TAufScript;
   AAuf:=AufScpt.Auf as TAuf;
   if not AAuf.CheckArgs(2) then exit;
-  if not AAuf.TryArgToAddr(1,line) then exit;
-  if WndTmp.Count<=0 then begin
-    AufScpt.jump_addr(line);
+  if not AAuf.TryArgToObject(1,TAufArray,arr) then exit;
+  (arr as TAufArray).Clear;
+  recur_getlist(WindowsTreeRoot, arr as TAufArray);
+end;
+
+function wndlist_filter_delete_ifnot_new(item:TAufBase):boolean;
+var tmpW:TMR_Window;
+begin
+  result:=false;
+  tmpW:=WindowsTreeRoot.GetWindowByHWND(item.AsInteger);
+  if tmpW=nil then exit;
+  result:=tmpW.Status<>wsNew;
+end;
+function wndlist_filter_delete_ifnot_deleted(item:TAufBase):boolean;
+var tmpW:TMR_Window;
+begin
+  result:=false;
+  tmpW:=WindowsTreeRoot.GetWindowByHWND(item.AsInteger);
+  if tmpW=nil then exit;
+  result:=tmpW.Status<>wsDeleted;
+end;
+function wndlist_filter_delete_ifnot_visible(item:TAufBase):boolean;
+var tmpW:TMR_Window;
+begin
+  result:=false;
+  tmpW:=WindowsTreeRoot.GetWindowByHWND(item.AsInteger);
+  if tmpW=nil then exit;
+  result:=tmpW.WindowRect.Height * tmpW.WindowRect.Width < 4;
+end;
+
+procedure wndlist_filter(Sender:TObject); //wndlist.filter @arr mode
+var AAuf:TAuf;
+    AufScpt:TAufScript;
+    arr:TObject;
+    mode:string;
+
+begin
+  AufScpt:=Sender as TAufScript;
+  AAuf:=AufScpt.Auf as TAuf;
+  if not AAuf.CheckArgs(3) then exit;
+  if not AAuf.TryArgToObject(1,TAufArray,arr) then exit;
+  if not AAuf.TryArgToStrParam(2,['-new','-deleted','-visible'],false,mode) then exit;
+  case mode of
+    '-new':(arr as TAufArray).Delete(@wndlist_filter_delete_ifnot_new);
+    '-deleted':(arr as TAufArray).Delete(@wndlist_filter_delete_ifnot_deleted);
+    '-visible':(arr as TAufArray).Delete(@wndlist_filter_delete_ifnot_visible);
   end;
+
+end;
+
+function wndlist_display_name(item:TAufBase):TAufBase;
+var tmpW:TMR_Window;
+begin
+  tmpW:=WindowsTreeRoot.GetWindowByHWND(item.AsInteger);
+  if tmpW=nil then begin
+    result:=TAufBase.CreateAsString('');
+  end else begin
+    result:=TAufBase.CreateAsString(IntToHex(tmpW.Handle,8)+' '+tmpW.Name);
+  end;
+end;
+function wndlist_display_classname(item:TAufBase):TAufBase;
+var tmpW:TMR_Window;
+begin
+  tmpW:=WindowsTreeRoot.GetWindowByHWND(item.AsInteger);
+  if tmpW=nil then begin
+    result:=TAufBase.CreateAsString('');
+  end else begin
+    result:=TAufBase.CreateAsString(IntToHex(tmpW.Handle,8)+' '+tmpW.ClassName);
+  end;
+end;
+function wndlist_display_status(item:TAufBase):TAufBase;
+var tmpW:TMR_Window;
+begin
+  result:=nil;
+  tmpW:=WindowsTreeRoot.GetWindowByHWND(item.AsInteger);
+  if tmpW=nil then begin
+    result:=TAufBase.CreateAsString('');
+  end else begin
+    case tmpW.Status of
+      wsNew     :result:=TAufBase.CreateAsString(IntToHex(tmpW.Handle,8)+' '+'n');
+      wsPersist :result:=TAufBase.CreateAsString(IntToHex(tmpW.Handle,8)+' '+'p');
+      wsDeleted :result:=TAufBase.CreateAsString(IntToHex(tmpW.Handle,8)+' '+'d');
+    end;
+  end;
+end;
+function wndlist_display_delete_ifempty(item:TAufBase):boolean;
+begin
+  result:=item.AsString='';
+end;
+
+procedure wndlist_display(Sender:TObject); //wndlist.display @arr field
+var AAuf:TAuf;
+    AufScpt:TAufScript;
+    arr:TObject;
+    arr2:TAufArray;
+    field:string;
+    len,idx:integer;
+
+begin
+  AufScpt:=Sender as TAufScript;
+  AAuf:=AufScpt.Auf as TAuf;
+  if not AAuf.CheckArgs(3) then exit;
+  if not AAuf.TryArgToObject(1,TAufArray,arr) then exit;
+  if not AAuf.TryArgToStrParam(2,['name','classname','status'],false,field) then exit;
+
+  arr2:=(arr as TAufArray).Copy as TAufArray;
+  try
+    case field of
+      'name':      arr2.Replace(@wndlist_display_name);
+      'classname': arr2.Replace(@wndlist_display_classname);
+      'status':    arr2.Replace(@wndlist_display_status);
+    end;
+    arr2.Delete(@wndlist_display_delete_ifempty);
+    len:=(arr2 as TAufArray).Count;
+    for idx:=0 to len-1 do begin
+      AufScpt.writeln(arr2.Items[idx].AsString);
+    end;
+  finally
+    arr2.Free;
+  end;
+
 end;
 
 procedure wnd_bring_to_top(Sender:TObject);//window.top hwnd
@@ -678,18 +691,22 @@ var hd:longint;
     info:tagWINDOWINFO;
     mem:TMemoryStream;
     dpiScaling:double;
-    xx,yy,ww,hh:dword;
+    xx,yy:longint;
+    ww,hh:dword;
     tmp:TAufRamVar;
     AAuf:TAuf;
     AufScpt:TAufScript;
-    BDBitmapData:TBDBitmapData;
+    VSBitMap:Graphics.TBitMap;
+    VSCanvas:TCanvas;
+    VSDC:HDC;
+    srcRect,dstRect:TRect;
     procedure GetWindowRect;
     begin
-      xx:=0;
-      yy:=0;
-      GetWindowInfo(hd,info);
-      ww:=round(info.rcWindow.Width*dpiScaling);
-      hh:=round(info.rcWindow.Height*dpiScaling);
+      ScreensList.UpdateScreens;
+      xx:=ScreensList.VirtualScreenRect.Left;
+      yy:=ScreensList.VirtualScreenRect.Top;
+      ww:=ScreensList.VirtualScreenRect.Width;
+      hh:=ScreensList.VirtualScreenRect.Height;
     end;
 
 begin
@@ -701,8 +718,8 @@ begin
   if not AAuf.TryArgToARV(2,8,8,[ARV_FixNum],tmp) then exit;
   dpiScaling:=GetDPIScaling;
   if AAuf.ArgsCount>3 then begin
-    if not AAuf.TryArgToDWord(3,xx) then exit;
-    if not AAuf.TryArgToDWord(4,yy) then exit;
+    if not AAuf.TryArgToLong(3,xx) then exit;
+    if not AAuf.TryArgToLong(4,yy) then exit;
     if not AAuf.TryArgToDWord(5,ww) then exit;
     if not AAuf.TryArgToDWord(6,hh) then exit;
     xx:=round(xx*dpiScaling);
@@ -712,17 +729,27 @@ begin
     if ww*hh=0 then GetWindowRect;
   end else GetWindowRect;
 
-  BDBitmapData:=TBDBitmapData.Create;
+  VSBitMap:=Graphics.TBitmap.Create;
+  VSBitMap.PixelFormat:=pf24bit;
+  VSCanvas:=TCanvas.Create;
+  VSDC:=GetDC(0);
+  VSCanvas.Handle:=VSDC;
   mem:=TMemoryStream.Create;
   try
-    BDBitmapData.CopyFormScreen(hd,xx,yy,ww,hh);
-    BDBitmapData.SaveToStream(mem);
+    VSBitMap.SetSize(ww,hh);
+    dstRect:=Classes.Rect(0,0,ww,hh);
+    srcRect:=Classes.Rect(xx,yy,xx+ww,yy+hh);
+    VSBitMap.Canvas.CopyRect(dstRect,VSCanvas,srcRect);
+    VSBitMap.SaveToStream(mem);
     mem.Position:=0;
     (arv_to_obj(tmp) as TARImage).LoadFromStream(mem);
   finally
-    BDBitmapData.Free;
+    VSBitMap.Free;
+    VSCanvas.Free;
+    ReleaseDC(0,VSDC);
     mem.Free;
   end;
+
 end;
 
 procedure _ARI_Display(Sender:TObject);//ari.dsp @img -u/-d
@@ -973,24 +1000,18 @@ begin
     'wndlist':
       begin
         if not AAuf.CheckArgs(4) then exit;
-        if not AAuf.TryArgToStrParam(2,['pos=','hwnd=','name=','class=','namecell=','aligncell='],false,option) then exit;
-        case option of
-          'namecell=','aligncell=':if not AAuf.TryArgToLong(3,{cell}fo) then exit;
-          else if not AAuf.TryArgToStrParam(3,_bool_values_,false,value) then exit;
-        end;
+        if not AAuf.TryArgToStrParam(2,['hwnd=','name=','class='],false,option) then exit;
+        if not AAuf.TryArgToStrParam(3,_bool_values_,false,value) then exit;
         try
           with Form_Routiner.Setting.WndListShowingOption do begin
             case lowercase(option) of
-              'pos=':       PositionVisible  := lowercase(value) in _true_values_;
               'hwnd=':      HwndVisible      := lowercase(value) in _true_values_;
               'name=':      WndNameVisible   := lowercase(value) in _true_values_;
               'class=':     ClassNameVisible := lowercase(value) in _true_values_;
-              'namecell=':  NameCell         :={cell}fo mod 256;
-              'aligncell=': AlignCell        :={cell}fo mod 256;
             end;
           end;
         except
-          AufScpt.send_error('参数只能包含LMR12CSA几个字符，未完成设置！');exit
+          AufScpt.send_error('参数存在错误，未完成设置！');exit
         end;
       end;
     'shortcut':
@@ -1071,13 +1092,10 @@ begin
   AAuf.Script.add_func('getwnd_v,按名称返回句柄',@getwind_name_visible,'@hwnd,wnd_name','查找名称为wnd_name且可见的窗体句柄');
   AAuf.Script.add_func('getwnd_t,返回置顶窗体',@getwind_top,'@hwnd','返回当前置顶窗体句柄');
   AAuf.Script.add_func('getwnd_s,窗体尺寸信息',@getwind_size,'hwnd,@x,@y,@w,@h','返回指定窗体的尺寸信息');
-  AAuf.Script.add_func('wndlist.update,刷新窗体列表',@wndlist_update,'filter,"on/off"','刷新窗体列表，filter为筛选字符串，第2参数规定是否使用正则表达式');
-  AAuf.Script.add_func('wndlist.find,递归新窗体查找',@wndlist_find,'filter,"on/off"','查找符合条件的递归窗体，filter为筛选字符串，第2参数规定是否使用正则表达式');
-
-  AAuf.Script.add_func('wndnew.init,查找新窗体初始化',@wndlist_new_init,'','将当前WndList保存用于新窗体查找');
-  AAuf.Script.add_func('wndnew.update,计算新窗体',@wndlist_new_update,'hwnd,filter,"on/off"[,-show]','获取新窗体列表，filter为筛选字符串，第2参数规定是否使用正则表达式。带-show参数时打印符合要求的窗体');
-  AAuf.Script.add_func('wndnew.pop,获取新窗体',@wndlist_new_pop,'@hwnd','从新窗体列表中获取一个句柄并删除');
-  AAuf.Script.add_func('wndnew.empty?,判断是否没有新窗体',@wndlist_new_empty,':label','从新窗体列表中获取一个句柄并删除');
+  AAuf.Script.add_func('wndlist.refresh,刷新窗体列表',@wndlist_refresh,'[-ui]','刷新窗体句柄列表，加-ui参数同时更新UI视图');
+  AAuf.Script.add_func('wndlist.getlist,导出窗体列表',@wndlist_getlist,'@arr','将全部句柄保存在arr数组中');
+  AAuf.Script.add_func('wndlist.filter,筛选窗体列表',@wndlist_filter,'@arr, mode','将保存有句柄的数组按照条件筛选');
+  AAuf.Script.add_func('wndlist.display,筛选窗体列表',@wndlist_display,'@arr, field','根据数组打印窗体的字段');
 
   AAuf.Script.add_func('getpixel,获取像素点',@_GetPixel,'hwnd,x,y,out_var','返回窗体指定像素点颜色');
   AAuf.Script.add_func('getrect,获取画面',@_GetPixelRect,'hwnd,x1,x2,y1,y2,out_var','返回窗体指定矩形范围内像素点颜色');

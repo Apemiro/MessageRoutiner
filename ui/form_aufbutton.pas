@@ -11,7 +11,7 @@ interface
 
 uses
   Classes, SysUtils, FileUtil, SynEdit, SynHighlighterHTML, SynHighlighterPas,
-  Forms, Controls, Graphics, Dialogs, StdCtrls, Windows, SynHighlighterAuf;
+  Forms, Controls, Graphics, Dialogs, StdCtrls, SynHighlighterAuf;
 
 type
 

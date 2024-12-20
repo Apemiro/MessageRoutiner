@@ -9,14 +9,14 @@ uses
   Interfaces, // this includes the LCL widgetset
   Forms,
   { you can add units after this }
-  MessageRoutiner_Unit,
-  form_settinglag, form_aufbutton, form_manual, form_runperformance,
-  form_holdbuttonsetting, form_adapter, form_imagemerger, form_scale,
-  unit_bitmapdata, unit_writescreen, mr_messagebox, mr_windowlist, mr_misc;
+  MessageRoutiner_Unit, form_settinglag, form_aufbutton, form_manual,
+  form_runperformance, form_holdbuttonsetting, form_adapter, form_imagemerger,
+  form_scale, unit_bitmapdata;
 
 {$R *.res}
 
 begin
+  Application.Scaled:=True;
   RequireDerivedFormResource:=True;
   Application.Initialize;
   Application.CreateForm(TForm_Routiner, Form_Routiner);

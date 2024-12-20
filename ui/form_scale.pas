@@ -15,6 +15,7 @@ type
   TScaleType = (stUnknown, stForm, stClient);
   TFormScale = class(TForm)
     procedure FormChangeBounds(Sender: TObject);
+    procedure FormKeyUp(Sender: TObject; var Key: Word; Shift: TShiftState);
     procedure FormMouseUp(Sender: TObject; Button: TMouseButton;
       Shift: TShiftState; X, Y: Integer);
     procedure FormPaint(Sender: TObject);
@@ -34,15 +35,17 @@ uses MessageRoutiner_Unit;
 
 {$R *.lfm}
 
-//function GetDPIScaling:double;
-//function GetDPI:integer;
-//function GetDPIRect(ARect:TRect):TRect;
-
 { TFormScale }
 
 procedure TFormScale.FormChangeBounds(Sender: TObject);
 begin
   FormPaint(Self);
+end;
+
+procedure TFormScale.FormKeyUp(Sender: TObject; var Key: Word;
+  Shift: TShiftState);
+begin
+  if Key = 27 then ModalResult:=mrOK;
 end;
 
 procedure TFormScale.FormMouseUp(Sender: TObject; Button: TMouseButton;
@@ -58,8 +61,9 @@ var window_info:TWindowInfo;
     hth,htw:Integer;
     stmp:string;
     dpi_scaling:double;
+
 begin
-  if GetWindowInfo(FHWND,window_info) then begin
+  if GetWindowInfo(FHWND,@window_info) then begin
     dpi_scaling:=GetDPIScaling;
     case FType of
       stClient:tmpRect:=window_info.rcClient;
@@ -70,6 +74,7 @@ begin
     tmpRect.Left:=tmpRect.Left-Left;
     tmpRect.Right:=tmpRect.Right-Left;
     tmpRect.Bottom:=tmpRect.Bottom-Top;
+
     with Canvas do begin
       Brush.Style:=bsClear;
       Clear;
@@ -121,7 +126,10 @@ procedure TFormScale.Call(Target:HWND;ScaleType:TScaleType);
 begin
   FHWND:=Target;
   FType:=ScaleType;
+  ScreensList.UpdateScreens;
+  with ScreensList.VirtualScreenRect do ChangeBounds(Left,Top,Width,Height,true);
   ShowModal;
+
 end;
 
 end.

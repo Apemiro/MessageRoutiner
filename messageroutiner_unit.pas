@@ -10,13 +10,13 @@ uses
   Classes, SysUtils, FileUtil, Forms, Controls, Graphics, Dialogs, Windows,
   StdCtrls, ComCtrls, ExtCtrls, Menus, Buttons, Spin, Dos, LazUTF8, RegExpr, Clipbrd
   {$ifndef insert},
-  Apiglio_Useful, aufscript_frame, auf_ram_var, form_adapter, unit_bitmapdata,
-  mr_misc, mr_messagebox, mr_holdbutton, mr_aufbutton
+  Apiglio_Useful, aufscript_frame, auf_ram_var, auf_type_array, auf_type_base, form_adapter, unit_bitmapdata,
+  mr_misc, mr_messagebox, mr_holdbutton, mr_aufbutton, mr_windowlist, mr_wndview, fpjson
   {$endif};
 
 const
 
-  version_number='0.2.11';
+  version_number='0.2.12';
 
   RuleCount      = 9;{不能大于31，否则设置保存会出问题}
   SynCount       = 4;{不能大于9，也不推荐9}
@@ -26,33 +26,17 @@ const
   sp_thick=6;
   WindowsListW=300;
   //ARVControlH=170;
-  ARVControlW=120;//原本是150，但是会在切换布局模式时造成ScrollBox_WndView的显示错误
-  SynchronicH=24;
+  ARVControlW=150;//120太窄//原本是150，但是会在切换布局模式时造成ScrollBox_WndView的显示错误
+  SynchronicH=32;
   SynchronicW=36;
   SynWndButtonW=300;//原本是360
-  MainMenuH=24;
-  StatusBarH=26;
+  MainMenuH=34;//24;
+  StatusBarH=34;
 
 
 type
 
   TLayoutSet = (Lay_Command=0,Lay_Advanced=1,Lay_Synchronic=2,Lay_Buttons=3,Lay_Recorder=4,Lay_Customer=5,Lay_ImgMerger=6);
-
-
-  { TWindow }
-  TWindow = class(TObject)
-  public
-    info:record
-      hd:HWND;
-      name,classname,fullname:string;
-      Left,Top,Height,Width:word;
-    end;
-    child:TList;
-    parent:TWindow;
-    node:TObject;
-    constructor Create(_hd:HWND;_name,_classname:string;_Left,_Top,_Width,_Height:word);
-  end;
-
 
   { TARVButton & TARVEdit }
 
@@ -162,7 +146,6 @@ type
     Label_MergerIntervalsEvery: TLabel;
     Label_MergerIntervalsMS: TLabel;
     Label_MergerBackMatch_Title: TLabel;
-    Label_WindowPosPadState: TLabel;
     MenuItem_Wndlist_Scale_Client: TMenuItem;
     MenuItem_Wndlist_Scale_Form: TMenuItem;
     MenuItem_Wndlist_Scale: TMenuItem;
@@ -204,7 +187,6 @@ type
     Splitter_MainV: TSplitter;
     Splitter_LeftV: TSplitter;
     StatusBar: TStatusBar;
-    WindowPosPad: TShape;
     MenuItem_Opt_Div: TMenuItem;
     MenuItem_Func_Basic: TMenuItem;
     MenuItem_RunPerformance: TMenuItem;
@@ -229,7 +211,7 @@ type
     PageControl: TPageControl;
     RadioGroup_RecSyntaxMode: TRadioGroup;
     TreeView_Wnd: TTreeView;
-    WindowPosPadWind: TShape;
+    WindowPosPad: TPanel;
 
     procedure Button_advancedClick(Sender: TObject);
     procedure Button_excelClick(Sender: TObject);
@@ -279,6 +261,7 @@ type
     procedure CheckBox_MergerTargetChange(Sender: TObject);
     procedure CheckBox_MergerTargetMouseEnter(Sender: TObject);
     procedure CheckBox_MergerTargetMouseLeave(Sender: TObject);
+    procedure CheckBox_UseRegChange(Sender: TObject);
     procedure CheckBox_UseRegMouseEnter(Sender: TObject);
     procedure CheckBox_UseRegMouseLeave(Sender: TObject);
     procedure CheckBox_ViewEnabledChange(Sender: TObject);
@@ -401,8 +384,11 @@ type
         BackMatch:integer;
       end;
       WndListShowingOption:record
-        HwndVisible,WndNameVisible,ClassNameVisible,PositionVisible:boolean;
-        AlignCell,NameCell:byte;
+        HwndVisible, WndNameVisible, ClassNameVisible, UseReg:boolean;
+        NameReg, ClassNameReg:string;
+        MinWidth, MaxWidth, MinHeight, MaxHeight:Integer;
+        WindowInsection:TRect;//与之相交为真
+        WindowContainer:TRect;//囊括其中为真
       end;
     end;
   public
@@ -416,6 +402,7 @@ type
     CheckBoxs:array[0..SynCount]of TARVCheckBox;
     AufScriptFrames:array[0..RuleCount] of TAufScriptFrame;
     AufPopupMenu:TAufPopupMenu;
+    ScreenViewer:TMR_WndView;
   public
     procedure ShortcutAufCommand(str:TStrings);//寻找一个没有在运行的SCAuf执行代码
     procedure ShortcutAufClear;//中止所有在运行的SCAuf执行代码
@@ -473,22 +460,22 @@ type
     procedure Merger_Loop;
     procedure Merger_Stop;
 
+  private
+    function WndListDispName(tmpWindow:TMR_Window):string;
+    procedure Recur_WindowsFilter(AWindow:TMR_Window; ATreeNode:TTreeNode);
   public
     procedure CurrentAufStrAdd(str:string);inline;
     procedure WindowsFilter;
     procedure SetLayout(layoutcode:byte);
     procedure ReDrawWndPos;
     procedure ShowManual(msg:string);
-    function GetSelectedWindow:TWindow;
+    function GetSelectedWindow:TMR_Window;
   end;
 
 var
   Form_Routiner: TForm_Routiner;
-  WndRoot:TWindow;
-  WndFlat,WndSub,WndTmp:TStringList;
-  Desktop:record
-    Width,Height:longint;
-  end;
+  WindowsTreeRoot:TMR_Window;
+  ScreensList:TMR_ScreenList;
   Reg:TRegExpr;
 
 implementation
@@ -622,7 +609,7 @@ begin
   Form_Routiner.Memo_Tmp.Lines.Add(str);
   Form_Routiner.Memo_Tmp.Lines.Add('');
 end;
-
+{
 procedure ClearWindows(wnd:TWindow);
 begin
   if not assigned(wnd) then exit;
@@ -730,6 +717,7 @@ begin
     Form_Routiner.TreeView_Wnd.EndUpdate;
   end;
 end;
+}
 
 {$I aufunc.inc}
 
@@ -768,21 +756,6 @@ begin
   Application.ProcessMessages;
 end;
 
-{ TWindow }
-
-constructor TWindow.Create(_hd:HWND;_name,_classname:string;_Left,_Top,_Width,_Height:word);
-begin
-  inherited Create;
-  info.hd:=_hd;
-  info.name:=_name;
-  info.classname:=_classname;
-  info.Left:=_Left;
-  info.Top:=_Top;
-  info.Width:=_Width;
-  info.Height:=_Height;
-  parent:=nil;
-  child:=TList.Create;
-end;
 
 { TForm_Routiner }
 
@@ -1266,10 +1239,45 @@ begin
 
 end;
 
-procedure TForm_Routiner.WindowsFilter;
+function TForm_Routiner.WndListDispName(tmpWindow:TMR_Window):string;
 begin
-  TreeView_Wnd.items.clear;
-  WndFinder(utf8towincp(Edit_TreeView.Text),CheckBox_UseReg.Checked);
+  result:='';
+  with Setting.WndListShowingOption do begin
+    if HwndVisible then result:=Format('[%.8x] ',[tmpWindow.Handle]);
+    if WndNameVisible then result:=result + tmpWindow.Name;
+    if ClassNameVisible then result:=result + ' █ ClassName='+tmpWindow.ClassName;
+  end;
+end;
+
+procedure TForm_Routiner.Recur_WindowsFilter(AWindow:TMR_Window; ATreeNode:TTreeNode);
+var tmpWindow:TMR_Window;
+    tmpTreeNode:TTreeNode;
+begin
+  for tmpWindow in AWindow do begin
+    with Setting.WndListShowingOption do
+    if UseReg then begin
+      if not Reg.Exec(tmpWindow.Name) then continue;
+    end else begin
+      if (NameReg<>'') and (Pos(NameReg,tmpWindow.Name)<=0) then continue;
+    end;
+    tmpTreeNode:=TreeView_Wnd.Items.AddChild(ATreeNode,WndListDispName(tmpWindow));
+    tmpTreeNode.Data:=tmpWindow;
+    Recur_WindowsFilter(tmpWindow, tmpTreeNode);
+  end;
+end;
+
+procedure TForm_Routiner.WindowsFilter;
+var tmpTreeNode:TTreeNode;
+begin
+  TreeView_Wnd.Items.clear;
+  WindowsTreeRoot.UpdateAsDesktop;
+  WindowsTreeRoot.UpdateChildren;
+  tmpTreeNode:=TreeView_Wnd.Items.Add(nil,'桌面 Desktop');
+  tmpTreeNode.Data:=WindowsTreeRoot;
+  Reg.Expression:=Setting.WndListShowingOption.NameReg;
+  if Reg.Expression='' then Reg.Expression:='.';
+  Recur_WindowsFilter(WindowsTreeRoot, tmpTreeNode);
+  tmpTreeNode.Expanded:=true;
 end;
 
 procedure TForm_Routiner.CurrentAufStrAdd(str:string);inline;
@@ -1405,27 +1413,27 @@ begin
 end;
 
 procedure TForm_Routiner.MenuItem_Wndlist_BringToFrontClick(Sender: TObject);
-var tmpWnd:TWindow;
+var tmpWnd:TMR_Window;
 begin
   tmpWnd:=Form_Routiner.GetSelectedWindow;
   if tmpWnd=nil then exit;
-  BringWindowToTop(tmpWnd.info.hd);
+  BringWindowToTop(tmpWnd.Handle);
 end;
 
 procedure TForm_Routiner.MenuItem_Wndlist_Scale_ClientClick(Sender: TObject);
-var tmpWnd:TWindow;
+var tmpWnd:TMR_Window;
 begin
   tmpWnd:=Form_Routiner.GetSelectedWindow;
   if tmpWnd=nil then exit;
-  FormScale.Call(tmpWnd.info.hd,stClient);
+  FormScale.Call(tmpWnd.Handle,stClient);
 end;
 
 procedure TForm_Routiner.MenuItem_Wndlist_Scale_FormClick(Sender: TObject);
-var tmpWnd:TWindow;
+var tmpWnd:TMR_Window;
 begin
   tmpWnd:=Form_Routiner.GetSelectedWindow;
   if tmpWnd=nil then exit;
-  FormScale.Call(tmpWnd.info.hd,stForm);
+  FormScale.Call(tmpWnd.Handle,stForm);
 end;
 
 procedure TForm_Routiner.MenuItem_Lay_SaveOptionClick(Sender: TObject);
@@ -1581,7 +1589,8 @@ end;
 
 procedure TForm_Routiner.ScrollBox_WndViewResize(Sender: TObject);
 begin
-  WindowPosPad.Height:=WindowPosPad.Width*Desktop.Height div Desktop.Width;
+  ScreensList.UpdateScreens;
+  WindowPosPad.Height:=WindowPosPad.Width*ScreensList.VirtualScreenRect.Height div ScreensList.VirtualScreenRect.Width;
   ReDrawWndPos;
   Memo_Tmp.Height:=(Sender as TScrollBox).Height-Memo_Tmp.Top+SynchronicH;
   with Sender as TScrollBox do
@@ -1694,6 +1703,8 @@ begin
           Frame.HighLighterReNew;
           Frame.onHelper:=@Self.ShowManual;
           Frame.OnChangeTitle:=@POnChangeTitle;
+          Frame.Memo_cmd.Font.Size:=10;
+          Frame.Memo_out.Font.Size:=10;
         end;
     end;
 
@@ -1744,8 +1755,8 @@ begin
 
       Self.Edits[i]:=TARVEdit.Create(Self);
       Self.Buttons[i]:=TARVButton.Create(Self);
-      Self.Edits[i].Parent:=Self.ScrollBox_Synchronic;
-      Self.Buttons[i].Parent:=Self.ScrollBox_Synchronic;
+      Self.Edits[i].Parent:=ScrollBox_Synchronic;
+      Self.Buttons[i].Parent:=ScrollBox_Synchronic;
       Self.Buttons[i].WindowIndex:=i;
       Self.Edits[i].Button:=Self.Buttons[i];
       Self.Buttons[i].Edit:=Self.Edits[i];
@@ -1760,7 +1771,7 @@ begin
       Self.CheckBoxs[i].Caption:='同步';
       Self.CheckBoxs[i].Font.Bold:=true;
       Self.CheckBoxs[i].Font.Bold:=false;
-      Self.CheckBoxs[i].Parent:=Self.ScrollBox_Synchronic;
+      Self.CheckBoxs[i].Parent:=ScrollBox_Synchronic;
       Self.CheckBoxs[i].Checked:=false;
 
       Self.CheckBoxs[i].OnChange:=@Self.CheckBoxs[i].CheckOnChange;
@@ -1847,6 +1858,10 @@ begin
   //Self.BorderStyle:=bsSingle;
 
   WindowsFilter;
+  ScreenViewer:=TMR_WndView.Create(WindowPosPad, ScreensList);
+  ScreenViewer.Parent:=WindowPosPad;
+  ScreenViewer.Align:=alClient;
+
 
   MergerAuf:=TAuf.Create(Self);
   MergerAuf.Script.Func_process.Setting:=@Routiner_Setting;//不一定用得到，还是加上吧
@@ -1856,7 +1871,7 @@ begin
   MergerAuf.Script.IO_fptr.print:=@ImgMergerAufStr;
   MergerAuf.Script.IO_fptr.error:=@ImgMergerAufStrErr;
   MergerAuf.Script.IO_fptr.pause:=nil;
-  MergerAuf.Script.Expression.Local.TryAddExp('hwnd',narg('',IntToStr(WndRoot.info.hd),''));
+  MergerAuf.Script.Expression.Local.TryAddExp('hwnd',narg('',IntToStr(WindowsTreeRoot.Handle),''));
   MergerAuf.Script.Expression.Local.TryAddExp('pw',narg('','120',''));
   MergerAuf.Script.Expression.Local.TryAddExp('bm',narg('','12',''));
   MergerAuf.Script.Expression.Local.TryAddExp('x',narg('','0',''));
@@ -1909,12 +1924,17 @@ begin
       HoldButton.Setting1:=[];
       HoldButton.Setting2:=mbRight;
       with WndListShowingOption do begin
-        AlignCell:=16;
-        NameCell:=32;
         HwndVisible:=true;
         WndNameVisible:=true;
         ClassNameVisible:=false;
-        PositionVisible:=false;
+        NameReg:='';
+        ClassNameReg:='';
+        MinWidth:=-1;
+        MaxWidth:=-1;
+        MinHeight:=-1;
+        MaxHeight:=-1;
+        WindowInsection:=Classes.Rect(0,0,0,0);
+        WindowContainer:=Classes.Rect(0,0,0,0);
       end;
       with MergerOption do begin
         Rect:=Classes.Rect(0,0,0,0);
@@ -1993,7 +2013,7 @@ begin
         Self.Splitter_MainV.Left:=Self.Width-sp_thick-WindowsListW;
         Self.Splitter_SyncV.Left:=Self.Width-sp_thick-WindowsListW;
         Self.Splitter_ButtonV.Left:=Self.Width-sp_thick-WindowsListW;
-        Self.Splitter_LeftH.Top:=Self.Height-sp_thick-MainMenuH-SynchronicH-StatusBarH;
+        Self.Splitter_LeftH.Top:=Self.Height-MainMenuH-StatusBarH-SynchronicH-sp_thick;//Self.Height-sp_thick-MainMenuH-SynchronicH-StatusBarH;
         Self.Splitter_RightH.Top:=0;
         Self.Splitter_RecH.Top:=0;
         Self.Button_Wnd_Record.Enabled:=true;
@@ -2177,13 +2197,13 @@ begin
 end;
 
 procedure TForm_Routiner.Button_MergerTargetClick(Sender: TObject);
-var wind:TWindow;
+var wind:TMR_Window;
 begin
   wind:=GetSelectedWindow;
   if wind=nil then exit;
-  (Sender as TButton).caption:=IntToHex(wind.info.hd,8)+':'+wind.info.name;
-  Setting.MergerOption.Target:=wind.info.hd;
-  MergerAuf.Script.Expression.Local.TryAddExp('hwnd',narg('',IntToStr(wind.info.hd),''));
+  (Sender as TButton).caption:=Format('%.8x : %s',[wind.Handle,wind.Name]);
+  Setting.MergerOption.Target:=wind.Handle;
+  MergerAuf.Script.Expression.Local.TryAddExp('hwnd',narg('',IntToStr(wind.Handle),''));
   Setting.MergerOption.Rect:=Classes.Rect(0,0,0,0);
   Button_MergerPosition.Caption:='X:0 Y:0 W:0 H:0';
 end;
@@ -2310,7 +2330,7 @@ begin
   if not Setting.MergerOption.UseWindow then begin
     Button_MergerPosition.Caption:='X:0 Y:0 W:0 H:0';
     Setting.MergerOption.Rect:=Classes.Rect(0,0,0,0);
-    MergerAuf.Script.Expression.Local.TryAddExp('hwnd',narg('',IntToStr(WndRoot.info.hd),''));
+    MergerAuf.Script.Expression.Local.TryAddExp('hwnd',narg('',IntToStr(WindowsTreeRoot.Handle),''));
   end;
 end;
 
@@ -2322,6 +2342,11 @@ end;
 procedure TForm_Routiner.CheckBox_MergerTargetMouseLeave(Sender: TObject);
 begin
   Self.ShowManual('');
+end;
+
+procedure TForm_Routiner.CheckBox_UseRegChange(Sender: TObject);
+begin
+  Setting.WndListShowingOption.UseReg:=CheckBox_UseReg.Checked;
 end;
 
 procedure TForm_Routiner.CheckBox_UseRegMouseEnter(Sender: TObject);
@@ -2542,10 +2567,19 @@ end;
 
 procedure TForm_Routiner.Edit_TreeViewChange(Sender: TObject);
 begin
+  Reg.Expression:=Edit_TreeView.Caption;
+  try
+    Reg.Exec('~Ma测试');
+  except
+    exit;
+  end;
+  Setting.WndListShowingOption.NameReg:=Edit_TreeView.Caption;
+  {
   //Self.Button_TreeViewFresh.OnClick(nil);
   tim.Interval:=50;
   tim.Enabled:=true;
   //这个问题肯定没有结束，目前用50ms以后重新刷新的方法迟早会再暴露出问题
+  }
   WindowsFilter;
 end;
 
@@ -2635,30 +2669,12 @@ end;
 
 procedure TForm_Routiner.ReDrawWndPos;
 var tmp:TTreeNode;
-    ww,hh,ll,tt:longint;
+    wind:TMR_Window;
 begin
   tmp:=Self.TreeView_Wnd.Selected;
-  if tmp = nil then begin
-    ww:=0;ll:=0;tt:=0;hh:=0;
-    Label_WindowPosPadState.Caption:='无句柄';
-  end else with TWindow(tmp.Data).info do begin
-    //with Screen.MonitorFromWindow(hd).WorkareaRect do ShowMessage(Format('l=%d, t=%d, w=%d, h=%d',[Left,Top,Width,Height]));
-    //with Screen.MonitorFromWindow(hd).BoundsRect do ShowMessage(Format('l=%d, t=%d, w=%d, h=%d',[Left,Top,Width,Height]));
-    //答案呼之欲出，之前的所有窗体操作全部改成用TScreen实现，计划写专门的窗体位置查看控件
-    ww:=Width;
-    hh:=Height;
-    ll:=int16(Left) - Screen.DesktopLeft;
-    tt:=int16(Top);
-    if ww*hh<=16 then Label_WindowPosPadState.Caption:='窗体过小'
-    else if ((ll+ww<0) or (ll>Desktop.Width)) and ((tt+hh<0) or (tt>Desktop.Height)) then Label_WindowPosPadState.Caption:='屏幕外'
-    else Label_WindowPosPadState.Caption:='';
-  end;
-  Self.WindowPosPadWind.Top:=Self.WindowPosPad.Top+tt*Self.WindowPosPad.Height div Desktop.Height;
-  Self.WindowPosPadWind.Left:=Self.WindowPosPad.Left+ll*Self.WindowPosPad.Width div Desktop.Width;
-  Self.WindowPosPadWind.Width:=ww*Self.WindowPosPad.Width div Desktop.Width;
-  Self.WindowPosPadWind.Height:=hh*Self.WindowPosPad.Height div Desktop.Height;
-  if Label_WindowPosPadState.Caption<>'' then WindowPosPad.Brush.Color:=clSilver
-  else WindowPosPad.Brush.Color:=clWhite;
+  if tmp=nil then exit;
+  wind:=TMR_Window(tmp.Data);
+  ScreenViewer.Window:=wind;
 end;
 
 procedure TForm_Routiner.ShowManual(msg:string);
@@ -2666,7 +2682,7 @@ begin
   Self.StatusBar.Panels.Items[0].Text:=msg;
 end;
 
-function TForm_Routiner.GetSelectedWindow:TWindow;
+function TForm_Routiner.GetSelectedWindow:TMR_Window;
 var node:TTreeNode;
 begin
   result:=nil;
@@ -2675,7 +2691,7 @@ begin
     MessageBox(0,PChar(utf8towincp('错误：请先选择一个窗体！')),'Error',MB_OK);
     exit
   end;
-  result:=TWindow(Form_Routiner.TreeView_Wnd.selected.data);
+  result:=TMR_Window(Form_Routiner.TreeView_Wnd.selected.data);
 end;
 
 procedure TForm_Routiner.FormClose(Sender: TObject;
@@ -2851,11 +2867,11 @@ begin
 end;
 
 procedure TARVButton.ButtonClick(Sender: TObject);
-var wind:TWindow;
+var wind:TMR_Window;
 begin
   wind:=Form_Routiner.GetSelectedWindow;
   if wind=nil then exit;
-  if not SetARV(Self.Edit.Text,wind.info.hd,wind.info.name) then
+  if not SetARV(Self.Edit.Text,wind.Handle,wind.Name) then
     MessageBox(0,PChar(utf8towincp(EOptionSettingError)),'Error',MB_OK);
 end;
 
@@ -2934,16 +2950,16 @@ end;
 
 initialization
   Reg:=TRegExpr.Create;
-  WndFlat:=TStringList.Create;
-  WndFlat.Sorted:=true;
-  WndSub:=TStringList.Create;
-  WndSub.Sorted:=true;
-  WndTmp:=TStringList.Create;
+
+  WindowsTreeRoot:=TMR_Window.GetDesktop;
+  ScreensList:=TMR_ScreenList.Create;
+  ScreensList.UpdateScreens;
 
 finalization
   Reg.Free;
-  WndFlat.Free;
-  WndSub.Free;
-  WndTmp.Free;
+
+  ScreensList.Free;
+  WindowsTreeRoot.Free;
+
 end.
 

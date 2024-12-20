@@ -13,7 +13,7 @@ object Form_ImgMerger: TForm_ImgMerger
   Constraints.MinHeight = 64
   Constraints.MinWidth = 96
   DesignTimePPI = 144
-  FormStyle = fsStayOnTop
+  FormStyle = fsSystemStayOnTop
   OnKeyDown = FormKeyDown
   OnKeyUp = FormKeyUp
   OnMouseDown = FormMouseDown

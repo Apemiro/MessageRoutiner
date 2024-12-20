@@ -190,6 +190,7 @@ begin
   wndRect:=info.rcWindow;
   WITH Form_Routiner.Setting.MergerOption DO BEGIN
     if UseWindow then begin
+      //使用Target的句柄初始化位置
       if rect_valid(Rect) then begin
         FRect:=Classes.Rect(
           wndRect.Left + Rect.Left,
@@ -207,10 +208,13 @@ begin
           );
       end;
     end else begin
+      //使用预设或桌面作为初始位置
       if rect_valid(Rect) then begin
         FRect:=Rect;
       end else begin
-        FRect:=Classes.Rect(0,0,Desktop.Width,Desktop.Height);
+        ScreensList.UpdateScreens;
+        with ScreensList.VirtualScreenRect do
+          FRect:=Classes.Rect(Left,Top,Left+Width,Top+Height);
       end;
     end;
     Button_RESETClick(Button_RESET);

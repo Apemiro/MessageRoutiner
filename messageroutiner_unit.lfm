@@ -1,7 +1,7 @@
 object Form_Routiner: TForm_Routiner
-  Left = 947
+  Left = 942
   Height = 918
-  Top = 318
+  Top = 322
   Width = 1031
   Caption = 'Apiglio Message Routiner'
   ClientHeight = 888
@@ -396,11 +396,10 @@ object Form_Routiner: TForm_Routiner
     Height = 343
     Top = 47
     Width = 394
-    HorzScrollBar.Page = 384
-    HorzScrollBar.Range = 384
+    HorzScrollBar.Page = 1
     HorzScrollBar.Visible = False
-    VertScrollBar.Page = 252
-    VertScrollBar.Range = 252
+    VertScrollBar.Page = 337
+    VertScrollBar.Range = 337
     Anchors = [akTop, akLeft, akRight, akBottom]
     AutoScroll = False
     ClientHeight = 339
@@ -413,7 +412,7 @@ object Form_Routiner: TForm_Routiner
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = Edit_TreeView
       Left = 0
-      Height = 303
+      Height = 307
       Top = 0
       Width = 390
       Anchors = [akTop, akLeft, akRight, akBottom]
@@ -431,11 +430,10 @@ object Form_Routiner: TForm_Routiner
       AnchorSideLeft.Control = ScrollBox_WndList
       AnchorSideTop.Control = Edit_TreeView
       AnchorSideTop.Side = asrCenter
-      Left = 8
+      Left = 0
       Height = 24
       Top = 311
       Width = 54
-      BorderSpacing.Left = 8
       Caption = '查找：'
       ParentColor = False
     end
@@ -447,14 +445,11 @@ object Form_Routiner: TForm_Routiner
       AnchorSideRight.Control = CheckBox_UseReg
       AnchorSideBottom.Control = ScrollBox_WndList
       AnchorSideBottom.Side = asrBottom
-      Left = 70
+      Left = 54
       Height = 32
       Top = 307
-      Width = 160
+      Width = 192
       Anchors = [akLeft, akRight, akBottom]
-      BorderSpacing.Left = 8
-      BorderSpacing.Top = 4
-      BorderSpacing.Right = 8
       OnChange = Edit_TreeViewChange
       OnMouseEnter = Edit_TreeViewMouseEnter
       OnMouseLeave = Edit_TreeViewMouseLeave
@@ -482,13 +477,13 @@ object Form_Routiner: TForm_Routiner
       AnchorSideTop.Control = Edit_TreeView
       AnchorSideTop.Side = asrCenter
       AnchorSideRight.Control = Button_TreeViewFresh
-      Left = 238
+      Left = 246
       Height = 28
       Top = 309
       Width = 64
       Anchors = [akTop, akRight]
-      BorderSpacing.Right = 8
       Caption = '正则'
+      OnChange = CheckBox_UseRegChange
       OnMouseEnter = CheckBox_UseRegMouseEnter
       OnMouseLeave = CheckBox_UseRegMouseLeave
       TabOrder = 3
@@ -541,7 +536,7 @@ object Form_Routiner: TForm_Routiner
     Width = 234
     HorzScrollBar.Page = 1
     HorzScrollBar.Visible = False
-    VertScrollBar.Page = 282
+    VertScrollBar.Page = 259
     Anchors = [akTop, akLeft, akRight, akBottom]
     ClientHeight = 427
     ClientWidth = 230
@@ -607,7 +602,24 @@ object Form_Routiner: TForm_Routiner
       ParentFont = False
       TabOrder = 2
     end
-    object WindowPosPad: TShape
+    object Memo_Tmp: TMemo
+      AnchorSideLeft.Control = ScrollBox_WndView
+      AnchorSideTop.Control = WindowPosPad
+      AnchorSideTop.Side = asrBottom
+      AnchorSideRight.Control = ScrollBox_WndView
+      AnchorSideRight.Side = asrBottom
+      Left = 0
+      Height = 74
+      Top = 185
+      Width = 230
+      Anchors = [akTop, akLeft, akRight]
+      OnKeyUp = Memo_TmpKeyUp
+      OnMouseEnter = Memo_TmpMouseEnter
+      OnMouseLeave = Memo_TmpMouseLeave
+      ParentShowHint = False
+      TabOrder = 3
+    end
+    object WindowPosPad: TPanel
       AnchorSideLeft.Control = ScrollBox_WndView
       AnchorSideTop.Control = Button_excel
       AnchorSideTop.Side = asrBottom
@@ -618,54 +630,10 @@ object Form_Routiner: TForm_Routiner
       Top = 88
       Width = 230
       Anchors = [akTop, akLeft, akRight]
-      Brush.Color = clSilver
       ParentShowHint = False
+      TabOrder = 4
       OnMouseEnter = WindowPosPadMouseEnter
       OnMouseLeave = WindowPosPadMouseLeave
-    end
-    object WindowPosPadWind: TShape
-      Left = 152
-      Height = 57
-      Top = 144
-      Width = 42
-      Brush.Color = clGray
-      OnMouseEnter = WindowPosPadWindMouseEnter
-      OnMouseLeave = WindowPosPadWindMouseLeave
-    end
-    object Memo_Tmp: TMemo
-      AnchorSideLeft.Control = ScrollBox_WndView
-      AnchorSideTop.Control = WindowPosPad
-      AnchorSideTop.Side = asrBottom
-      AnchorSideRight.Control = ScrollBox_WndView
-      AnchorSideRight.Side = asrBottom
-      Left = 0
-      Height = 97
-      Top = 185
-      Width = 230
-      Anchors = [akTop, akLeft, akRight]
-      OnKeyUp = Memo_TmpKeyUp
-      OnMouseEnter = Memo_TmpMouseEnter
-      OnMouseLeave = Memo_TmpMouseLeave
-      ParentShowHint = False
-      TabOrder = 3
-    end
-    object Label_WindowPosPadState: TLabel
-      AnchorSideLeft.Control = WindowPosPad
-      AnchorSideLeft.Side = asrCenter
-      AnchorSideTop.Control = WindowPosPad
-      AnchorSideTop.Side = asrCenter
-      Left = 88
-      Height = 24
-      Top = 124
-      Width = 54
-      BorderSpacing.Left = 8
-      BorderSpacing.Top = 8
-      Caption = '屏幕外'
-      Font.Color = clWhite
-      ParentColor = False
-      ParentFont = False
-      OnMouseEnter = Label_WindowPosPadStateMouseEnter
-      OnMouseLeave = Label_WindowPosPadStateMouseLeave
     end
   end
   object Splitter_SyncV: TSplitter
@@ -696,23 +664,24 @@ object Form_Routiner: TForm_Routiner
     HorzScrollBar.Visible = False
     VertScrollBar.Page = 1
     Anchors = [akTop, akLeft, akRight, akBottom]
+    AutoScroll = False
     ClientHeight = 427
     ClientWidth = 358
     TabOrder = 15
     OnResize = ScrollBox_SynchronicResize
     object ScrollBox_ImageView: TPanel
       AnchorSideLeft.Control = ScrollBox_Synchronic
-      AnchorSideTop.Side = asrBottom
+      AnchorSideTop.Control = ScrollBox_Synchronic
       AnchorSideRight.Control = ScrollBox_Synchronic
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = ScrollBox_Synchronic
       AnchorSideBottom.Side = asrBottom
       Left = 0
-      Height = 408
-      Top = 128
+      Height = 371
+      Top = 56
       Width = 358
-      Anchors = [akLeft, akRight]
-      ClientHeight = 408
+      Anchors = [akLeft, akRight, akBottom]
+      ClientHeight = 371
       ClientWidth = 358
       TabOrder = 0
       object CheckBox_ViewEnabled: TCheckBox
@@ -964,11 +933,12 @@ object Form_Routiner: TForm_Routiner
           AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = SpinEdit_MergerIntervals
           AnchorSideTop.Side = asrBottom
-          AnchorSideRight.Control = Label_MergerBackMatch_Title
-          Left = 99
+          AnchorSideRight.Control = Button_MergerPath
+          AnchorSideRight.Side = asrBottom
+          Left = 63
           Height = 32
           Top = 113
-          Width = 82
+          Width = 137
           Anchors = [akTop, akLeft, akRight]
           BorderSpacing.Right = 8
           MaxValue = 500
@@ -980,15 +950,17 @@ object Form_Routiner: TForm_Routiner
           Value = 120
         end
         object SpinEdit_MergerBackMatch: TSpinEdit
+          AnchorSideLeft.Control = Label_MergerBackMatch_Title
+          AnchorSideLeft.Side = asrBottom
           AnchorSideTop.Control = SpinEdit_MergerIntervals
           AnchorSideTop.Side = asrBottom
           AnchorSideRight.Control = Panel_ImageMerger
           AnchorSideRight.Side = asrBottom
-          Left = 279
+          Left = 244
           Height = 32
           Top = 113
-          Width = 68
-          Anchors = [akTop, akRight]
+          Width = 103
+          Anchors = [akTop, akLeft, akRight]
           BorderSpacing.Right = 8
           MaxValue = 50
           OnChange = SpinEdit_MergerBackMatchChange
@@ -1003,23 +975,29 @@ object Form_Routiner: TForm_Routiner
           AnchorSideTop.Side = asrCenter
           Left = 9
           Height = 24
+          Hint = '匹配像素高度'
           Top = 117
-          Width = 90
+          Width = 54
           BorderSpacing.Left = 8
-          Caption = '匹配像素：'
+          Caption = '匹配度'
           ParentColor = False
+          ParentShowHint = False
+          ShowHint = True
         end
         object Label_MergerBackMatch_Title: TLabel
+          AnchorSideLeft.Control = Button_MergerAppend
           AnchorSideTop.Control = SpinEdit_MergerBackMatch
           AnchorSideTop.Side = asrCenter
           AnchorSideRight.Control = SpinEdit_MergerBackMatch
-          Left = 189
+          Left = 208
           Height = 24
+          Hint = '回溯匹配次数上限'
           Top = 117
-          Width = 90
-          Anchors = [akTop, akRight]
-          Caption = '回溯上限：'
+          Width = 36
+          Caption = '回溯'
           ParentColor = False
+          ParentShowHint = False
+          ShowHint = True
         end
       end
       object ScrollBox_ImageViewScroll: TScrollBox
@@ -1031,14 +1009,16 @@ object Form_Routiner: TForm_Routiner
         AnchorSideBottom.Control = ScrollBox_ImageView
         AnchorSideBottom.Side = asrBottom
         Left = 1
-        Height = 193
+        Height = 156
         Top = 214
         Width = 356
         HorzScrollBar.Page = 1
-        VertScrollBar.Page = 131
+        VertScrollBar.Page = 116
+        VertScrollBar.Range = 131
         Anchors = [akTop, akLeft, akRight, akBottom]
-        ClientHeight = 189
-        ClientWidth = 352
+        AutoScroll = False
+        ClientHeight = 152
+        ClientWidth = 326
         TabOrder = 2
         object Image_Ram: TImage
           AnchorSideLeft.Control = ScrollBox_ImageViewScroll
@@ -1046,7 +1026,7 @@ object Form_Routiner: TForm_Routiner
           AnchorSideTop.Control = ScrollBox_ImageViewScroll
           AnchorSideRight.Side = asrBottom
           AnchorSideBottom.Side = asrBottom
-          Left = 68
+          Left = 55
           Height = 101
           Top = 0
           Width = 216

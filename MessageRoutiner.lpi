@@ -7,8 +7,13 @@
       <SessionStorage Value="InProjectDir"/>
       <MainUnit Value="0"/>
       <Title Value="MessageRoutiner"/>
+      <Scaled Value="True"/>
       <ResourceType Value="res"/>
       <UseXPManifest Value="True"/>
+      <XPManifest>
+        <DpiAware Value="True/PM"/>
+        <TextName Value="Apiglio.AufScriptTool.MessageRoutiner"/>
+      </XPManifest>
       <Icon Value="0"/>
     </General>
     <i18n>
@@ -36,7 +41,7 @@
         <PackageName Value="LCL"/>
       </Item3>
     </RequiredPackages>
-    <Units Count="23">
+    <Units Count="24">
       <Unit0>
         <Filename Value="MessageRoutiner.lpr"/>
         <IsPartOfProject Value="True"/>
@@ -64,7 +69,9 @@
       <Unit5>
         <Filename Value="..\AufScript\aufscript_frame.pas"/>
         <IsPartOfProject Value="True"/>
+        <ComponentName Value="Frame_AufScript"/>
         <HasResources Value="True"/>
+        <ResourceBaseClass Value="Frame"/>
       </Unit5>
       <Unit6>
         <Filename Value="..\AufScript\auftype\auf_type_array.pas"/>
@@ -158,6 +165,10 @@
         <HasResources Value="True"/>
         <ResourceBaseClass Value="Form"/>
       </Unit22>
+      <Unit23>
+        <Filename Value="ui\mr_wndview.pas"/>
+        <IsPartOfProject Value="True"/>
+      </Unit23>
     </Units>
   </ProjectOptions>
   <CompilerOptions>

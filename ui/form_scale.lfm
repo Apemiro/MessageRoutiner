@@ -8,10 +8,11 @@ object FormScale: TFormScale
   BorderStyle = bsNone
   Caption = 'FormScale'
   DesignTimePPI = 144
+  FormStyle = fsSystemStayOnTop
   OnChangeBounds = FormChangeBounds
+  OnKeyUp = FormKeyUp
   OnMouseUp = FormMouseUp
   OnPaint = FormPaint
   OnResize = FormResize
   LCLVersion = '1.8.4.0'
-  WindowState = wsMaximized
 end
