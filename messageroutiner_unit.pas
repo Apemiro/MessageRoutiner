@@ -16,7 +16,7 @@ uses
 
 const
 
-  version_number = '0.2.12';
+  version_number = '0.2.13';
 
   RuleCount      = 9;{不能大于31，否则设置保存会出问题}
   SynCount       = 4;{不能大于9，也不推荐9；也不推荐4以下，这会导致自动布局效果很差}
