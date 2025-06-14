@@ -548,7 +548,7 @@ begin
   Self.Status.Rec.FirstRecTime:=GetTimeNumber;
   Self.Status.Rec.LastMousePos:=Classes.Point(High(Integer),High(Integer));//确保第一个鼠标消息能符合鼠标有移动的判断条件
   Self.Status.Rec.MouseStatus:=[];
-  if Self.Option.Rec.TargetWindow = WindowsTreeRoot.Handle then begin
+  if (Self.Option.Rec.TargetWindow = WindowsTreeRoot.Handle) or (Self.Option.Rec.TargetWindow = 0) then begin
     Self.Status.Rec.TargetRect:=ScreensList.VirtualScreenRect;
     Self.Status.Rec.MouseOri:=Classes.Point(0,0);
   end else begin
