@@ -286,7 +286,6 @@ type
     procedure SpinEdit_MergerPixelWidthChange(Sender: TObject);
     procedure SpinEdit_MergerPixelWidthMouseEnter(Sender: TObject);
     procedure SpinEdit_MergerPixelWidthMouseLeave(Sender: TObject);
-    procedure TreeViewEditOnChange(Sender:TObject);
     procedure Button_TreeViewFreshClick(Sender: TObject);
     procedure Button_Wnd_RecordClick(Sender: TObject);
     procedure Button_Wnd_SynthesisClick(Sender: TObject);
@@ -336,8 +335,6 @@ type
     procedure WindowPosPadWindMouseEnter(Sender: TObject);
     procedure WindowPosPadWindMouseLeave(Sender: TObject);
 
-  private
-    Tim:TTimer;//因为不知道怎么处理汉字输入法造成连续的OnChange事件，迫不得已采用延时50ms检测连续输入的办法。
   public
     Layout:record
       LayoutCode:TLayoutSet;//布局类型
@@ -459,7 +456,7 @@ type
 
   private
     function WndListDispName(tmpWindow:TMR_Window):string;
-    procedure Recur_WindowsFilter(AWindow:TMR_Window; ATreeNode:TTreeNode);
+    procedure Recur_WindowsFilter(AWindow:TMR_Window; ATreeNode:TTreeNode; parent_match:boolean);
   public
     procedure CurrentAufStrAdd(str:string);inline;
     procedure WindowsFilter;
@@ -606,115 +603,7 @@ begin
   Form_Routiner.Memo_Tmp.Lines.Add(str);
   Form_Routiner.Memo_Tmp.Lines.Add('');
 end;
-{
-procedure ClearWindows(wnd:TWindow);
-begin
-  if not assigned(wnd) then exit;
-  Application.ProcessMessages;
-  while wnd.child.count <> 0 do
-    begin
-      ClearWindows(TWindow(wnd.child.Extract(wnd.child.first)));
-    end;
-  wnd.child.free;
-  wnd.free;
-end;
 
-procedure GetChildWindows(wnd:TWindow;filter:string='';UseReg:boolean=false);
-var hd:HWND;
-    info:tagWindowInfo;
-    w,h:word;
-    title,classname,caption:string;
-    ttmp,ctmp:{PChar}array[0..199]of char;
-    new_wnd:TWindow;
-    FilterRes:boolean;
-begin
-  hd:=GetWindow(wnd.info.hd,GW_CHILD);
-  while hd<>0 do
-    begin
-      GetWindowText(hd,ttmp,200);
-      GetClassName(hd,ctmp,200);
-      title:=ttmp;
-      classname:=ctmp;
-      GetWindowInfo(hd,info);
-      w:=info.rcWindow.Right-info.rcWindow.Left;
-      h:=info.rcWindow.Bottom-info.rcWindow.Top;
-      new_wnd:=TWindow.Create(hd,wincptoutf8(title),wincptoutf8(classname),info.rcWindow.Left,info.rcWindow.Top,w,h);
-      new_wnd.parent:=Wnd;
-      if new_wnd.parent.info.name='WndRoot' then new_wnd.info.fullname:='['+IntToHex(new_wnd.info.hd,8)+']'+new_wnd.info.name
-      else new_wnd.info.fullname:=new_wnd.parent.info.fullname+'/['+IntToHex(new_wnd.info.hd,8)+']'+new_wnd.info.name;
-      wnd.child.add(new_wnd);
-      WndFlat.Objects[WndFlat.Add(new_wnd.info.fullname)]:=new_wnd;
-      if title='' then title:=' ';
-
-      if filter='' then FilterRes:=true
-      else begin
-        if UseReg then begin
-          Reg.Expression:=filter;
-          try
-            FilterRes:=Reg.Exec(title);
-            if not FilterRes then FilterRes:=Reg.Exec(classname);
-          except
-            FilterRes:=true;
-          end;
-        end else begin
-          FilterRes:=(pos(lowercase(filter),lowercase(title))>0) or (pos(lowercase(filter),lowercase(classname))>0)
-        end;
-      end;
-
-      IF FilterRes THEN
-        BEGIN
-          with Form_Routiner.Setting.WndListShowingOption do
-            begin
-              if HwndVisible then caption:='['+IntToHex(hd,8)+']' else caption:='';
-              if PositionVisible then caption:=caption+'[W='+Usf.zeroplus(w,5)+' H='+Usf.zeroplus(h,5)+' L='+Usf.zeroplus(info.rcWindow.Left,5)+' T='+Usf.zeroplus(info.rcWindow.Top,5)+']';
-              if WndNameVisible then caption:=caption + Usf.left_adjust(title,NameCell,AlignCell);
-              if ClassNameVisible then caption:=caption + ' [CLASS]'+classname;
-              caption:=wincptoutf8(trim(caption));
-            end;
-          if (new_wnd.parent.node)=nil then
-            begin
-              Form_Routiner.TreeView_Wnd.Items.add(nil,caption)
-            end
-          else
-            begin
-              Form_Routiner.TreeView_Wnd.Items.addchild((new_wnd.parent.node) as TTreeNode,caption);
-            end;
-          new_wnd.node:=Form_Routiner.TreeView_Wnd.Items[Form_Routiner.TreeView_Wnd.Items.count-1];
-          (new_wnd.node as TTreeNode).data:=new_wnd;
-          GetChildWindows(new_wnd{, filter, UseReg});//很显然不应该在次级窗体中应用筛选
-        END;
-
-      hd:=GetNextWindow(hd,GW_HWNDNEXT);
-
-    end;
-end;
-
-
-procedure WndFinder(filter:string='';UseReg:boolean=false);
-var hd:HWND;
-    info:tagWindowInfo;
-begin
-  Form_Routiner.TreeView_Wnd.BeginUpdate;
-  try
-    ClearWindows(WndRoot);
-    WndFlat.Clear;
-    hd:=GetDesktopWindow;//得到桌面窗口
-    GlobalExpressionList.TryAddExp('desktop',narg('',IntToStr(hd),''));
-    WndRoot:=TWindow.Create(hd,'WndRoot','',0,0,0,0);
-    WndRoot.parent:=nil;
-    WndRoot.node:=nil;
-    WndFlat.Objects[WndFlat.Add('')]:=nil;
-
-    GetWindowInfo(hd,info);
-    Desktop.Width:=info.rcWindow.Right-info.rcWindow.Left;
-    Desktop.Height:=info.rcWindow.Bottom-info.rcWindow.Top;
-
-    GetChildWindows(WndRoot,filter,UseReg);
-  finally
-    Form_Routiner.TreeView_Wnd.EndUpdate;
-  end;
-end;
-}
 
 {$I aufunc.inc}
 
@@ -1246,20 +1135,23 @@ begin
   end;
 end;
 
-procedure TForm_Routiner.Recur_WindowsFilter(AWindow:TMR_Window; ATreeNode:TTreeNode);
+procedure TForm_Routiner.Recur_WindowsFilter(AWindow:TMR_Window; ATreeNode:TTreeNode; parent_match:boolean);
 var tmpWindow:TMR_Window;
     tmpTreeNode:TTreeNode;
+    name_match:boolean;
 begin
   for tmpWindow in AWindow do begin
-    with Setting.WndListShowingOption do
-    if UseReg then begin
-      if not Reg.Exec(tmpWindow.Name) then continue;
-    end else begin
-      if (NameReg<>'') and (Pos(NameReg,tmpWindow.Name)<=0) then continue;
-    end;
+    if not parent_match then with Setting.WndListShowingOption do begin
+      if UseReg then begin
+        name_match := Reg.Exec(tmpWindow.Name);
+      end else begin
+        name_match := (NameReg='') or (Pos(NameReg,tmpWindow.Name)>0);
+      end;
+    end else name_match:=true;
+    if not name_match then continue;
     tmpTreeNode:=TreeView_Wnd.Items.AddChild(ATreeNode,WndListDispName(tmpWindow));
     tmpTreeNode.Data:=tmpWindow;
-    Recur_WindowsFilter(tmpWindow, tmpTreeNode);
+    Recur_WindowsFilter(tmpWindow, tmpTreeNode, name_match);
   end;
 end;
 
@@ -1273,7 +1165,7 @@ begin
   tmpTreeNode.Data:=WindowsTreeRoot;
   Reg.Expression:=Setting.WndListShowingOption.NameReg;
   if Reg.Expression='' then Reg.Expression:='.';
-  Recur_WindowsFilter(WindowsTreeRoot, tmpTreeNode);
+  Recur_WindowsFilter(WindowsTreeRoot, tmpTreeNode, false);
   tmpTreeNode.Expanded:=true;
 end;
 
@@ -1878,12 +1770,6 @@ begin
 
   //Self.BorderStyle:=bsSingle;
 
-  WindowsFilter;
-  ScreenViewer:=TMR_WndView.Create(WindowPosPad, ScreensList);
-  ScreenViewer.Parent:=WindowPosPad;
-  ScreenViewer.Align:=alClient;
-
-
   MergerAuf:=TAuf.Create(Self);
   MergerAuf.Script.Func_process.Setting:=@Routiner_Setting;//不一定用得到，还是加上吧
   MergerAuf.Script.InternalFuncDefine;
@@ -1913,9 +1799,6 @@ begin
   FormResize(nil);
 
   FPMouseCursor:=nil;
-
-  tim:=TTimer.Create(Self);
-  tim.OnTimer:=@Self.TreeViewEditOnChange;
 
   Self.LastMessage.msg:=0;
   Self.LastMessage.lParam:=0;
@@ -1966,7 +1849,10 @@ begin
 
     end;
 
-  //AdapterForm.Show;
+  WindowsFilter;
+  ScreenViewer:=TMR_WndView.Create(WindowPosPad, ScreensList);
+  ScreenViewer.Parent:=WindowPosPad;
+  ScreenViewer.Align:=alClient;
 
 end;
 
@@ -2586,19 +2472,7 @@ begin
     exit;
   end;
   Setting.WndListShowingOption.NameReg:=Edit_TreeView.Caption;
-  {
-  //Self.Button_TreeViewFresh.OnClick(nil);
-  tim.Interval:=50;
-  tim.Enabled:=true;
-  //这个问题肯定没有结束，目前用50ms以后重新刷新的方法迟早会再暴露出问题
-  }
   WindowsFilter;
-end;
-
-procedure TForm_Routiner.TreeViewEditOnChange(Sender:TObject);
-begin
-  WindowsFilter;
-  Self.tim.Enabled:=false;
 end;
 
 procedure TForm_Routiner.SetLayout(layoutcode:byte);
