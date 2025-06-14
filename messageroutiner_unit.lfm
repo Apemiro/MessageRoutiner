@@ -1,7 +1,7 @@
 object Form_Routiner: TForm_Routiner
-  Left = 942
+  Left = 909
   Height = 918
-  Top = 322
+  Top = 312
   Width = 1031
   Caption = 'Apiglio Message Routiner'
   ClientHeight = 888
@@ -60,14 +60,14 @@ object Form_Routiner: TForm_Routiner
     AnchorSideRight.Control = Splitter_RightV
     AnchorSideBottom.Control = StatusBar
     Left = 614
-    Height = 458
-    Top = 396
+    Height = 440
+    Top = 414
     Width = 394
     HorzScrollBar.Page = 1
     HorzScrollBar.Visible = False
-    VertScrollBar.Page = 366
+    VertScrollBar.Page = 422
     Anchors = [akTop, akLeft, akRight, akBottom]
-    ClientHeight = 454
+    ClientHeight = 436
     ClientWidth = 390
     TabOrder = 2
     OnResize = ScrollBox_RecOptionResize
@@ -79,7 +79,7 @@ object Form_Routiner: TForm_Routiner
       AnchorSideRight.Side = asrBottom
       Left = 0
       Height = 85
-      Top = 142
+      Top = 198
       Width = 390
       Anchors = [akTop, akLeft, akRight]
       AutoFill = True
@@ -116,8 +116,8 @@ object Form_Routiner: TForm_Routiner
       AnchorSideBottom.Control = ScrollBox_RecOption
       AnchorSideBottom.Side = asrBottom
       Left = 0
-      Height = 120
-      Top = 334
+      Height = 46
+      Top = 390
       Width = 390
       Anchors = [akTop, akLeft, akRight, akBottom]
       OnKeyUp = Memo_TmpRecKeyUp
@@ -131,7 +131,7 @@ object Form_Routiner: TForm_Routiner
       AnchorSideRight.Control = ScrollBox_RecOption
       AnchorSideRight.Side = asrBottom
       Left = 0
-      Height = 69
+      Height = 125
       Top = 0
       Width = 390
       Anchors = [akTop, akLeft, akRight]
@@ -146,19 +146,22 @@ object Form_Routiner: TForm_Routiner
       ChildSizing.ShrinkVertical = crsScaleChilds
       ChildSizing.Layout = cclLeftToRightThenTopToBottom
       ChildSizing.ControlsPerLine = 2
-      ClientHeight = 40
+      ClientHeight = 96
       ClientWidth = 386
       Columns = 2
       Items.Strings = (
         '键盘消息'
-        '鼠标消息'
+        '字符消息'
+        '鼠标点击'
+        '鼠标移动'
+        '强制光标位置信息'
       )
       OnItemClick = CheckGroup_KeyMouseItemClick
       OnMouseEnter = CheckGroup_KeyMouseMouseEnter
       OnMouseLeave = CheckGroup_KeyMouseMouseLeave
       TabOrder = 2
       Data = {
-        020000000202
+        050000000202020202
       }
     end
     object GroupBox_OffsetSetting: TGroupBox
@@ -169,7 +172,7 @@ object Form_Routiner: TForm_Routiner
       AnchorSideRight.Side = asrBottom
       Left = 0
       Height = 99
-      Top = 235
+      Top = 291
       Width = 390
       Anchors = [akTop, akLeft, akRight]
       AutoSize = True
@@ -259,7 +262,7 @@ object Form_Routiner: TForm_Routiner
       AnchorSideRight.Side = asrBottom
       Left = 0
       Height = 57
-      Top = 77
+      Top = 133
       Width = 390
       Anchors = [akTop, akLeft, akRight]
       AutoFill = True
@@ -367,7 +370,7 @@ object Form_Routiner: TForm_Routiner
     Cursor = crVSplit
     Left = 614
     Height = 6
-    Top = 390
+    Top = 408
     Width = 394
     Align = alNone
     Anchors = [akLeft, akRight]
@@ -393,7 +396,7 @@ object Form_Routiner: TForm_Routiner
     AnchorSideRight.Control = Splitter_RightV
     AnchorSideBottom.Control = Splitter_RecH
     Left = 614
-    Height = 343
+    Height = 361
     Top = 47
     Width = 394
     HorzScrollBar.Page = 1
@@ -402,7 +405,7 @@ object Form_Routiner: TForm_Routiner
     VertScrollBar.Range = 337
     Anchors = [akTop, akLeft, akRight, akBottom]
     AutoScroll = False
-    ClientHeight = 339
+    ClientHeight = 357
     ClientWidth = 390
     TabOrder = 10
     object TreeView_Wnd: TTreeView
@@ -412,7 +415,7 @@ object Form_Routiner: TForm_Routiner
       AnchorSideRight.Side = asrBottom
       AnchorSideBottom.Control = Edit_TreeView
       Left = 0
-      Height = 307
+      Height = 325
       Top = 0
       Width = 390
       Anchors = [akTop, akLeft, akRight, akBottom]
@@ -432,7 +435,7 @@ object Form_Routiner: TForm_Routiner
       AnchorSideTop.Side = asrCenter
       Left = 0
       Height = 24
-      Top = 311
+      Top = 329
       Width = 54
       Caption = '查找：'
       ParentColor = False
@@ -447,7 +450,7 @@ object Form_Routiner: TForm_Routiner
       AnchorSideBottom.Side = asrBottom
       Left = 54
       Height = 32
-      Top = 307
+      Top = 325
       Width = 192
       Anchors = [akLeft, akRight, akBottom]
       OnChange = Edit_TreeViewChange
@@ -464,7 +467,7 @@ object Form_Routiner: TForm_Routiner
       AnchorSideBottom.Side = asrBottom
       Left = 310
       Height = 32
-      Top = 307
+      Top = 325
       Width = 80
       Anchors = [akTop, akRight, akBottom]
       Caption = '刷新列表'
@@ -479,7 +482,7 @@ object Form_Routiner: TForm_Routiner
       AnchorSideRight.Control = Button_TreeViewFresh
       Left = 246
       Height = 28
-      Top = 309
+      Top = 327
       Width = 64
       Anchors = [akTop, akRight]
       Caption = '正则'

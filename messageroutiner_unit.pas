@@ -430,9 +430,9 @@ type
     LastMessage:TMessage;
     TimeOffset:longint;//rtmWaittimer模式的初始时间
 
-  private //鼠标指正坐标压栈
+  private //鼠标指针坐标压栈
     FPMouseCursor:PMouseCursor;
-  public //鼠标指正坐标压栈
+  public //鼠标指针坐标压栈
     procedure PushMouseCursor(point:TPoint);
     function PopMouseCursor:TPoint;
 
@@ -2380,8 +2380,11 @@ var msgtext:string;
 begin
   with Sender as TCheckGroup do
     begin
-      AdapterForm.Option.Rec.BKeybd:=Checked[0];
-      AdapterForm.Option.Rec.BMouse:=Checked[1];
+      AdapterForm.Option.Rec.BKeybd      := Checked[0];
+      AdapterForm.Option.Rec.BChar       := Checked[1];
+      AdapterForm.Option.Rec.BMouse      := Checked[2];
+      AdapterForm.Option.Rec.BMouseMov   := Checked[3];
+      AdapterForm.Option.Rec.BPushCursor := Checked[4];
     end;
   msgtext:='';
   if (not Self.MouseHookEnabled) and Self.Setting.RecOption.RecMouse then msgtext:=msgtext + '鼠标钩子未启用，鼠标录制功能无效。'+#13+#10;

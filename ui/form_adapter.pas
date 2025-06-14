@@ -73,6 +73,8 @@ type
     Option:record
       Rec:record
         BKeybd,BMouse:boolean;//是否记录键盘或鼠标消息
+        BChar:boolean;//是否生成键盘按下抬起之间的字符消息
+        BMouseMov,BPushCursor:boolean;//是否记录额外的鼠标指令
         TimeMode:TRecTimeMode;
         SyntaxMode:TRecSyntaxMode;
       end;//录制器设置
