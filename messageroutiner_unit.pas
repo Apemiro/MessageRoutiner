@@ -234,8 +234,6 @@ type
       Shift: TShiftState);
     procedure Button_MouseOriMouseEnter(Sender: TObject);
     procedure Button_MouseOriMouseLeave(Sender: TObject);
-    procedure Button_MouseOriMouseUp(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
     procedure Button_TreeViewFreshMouseEnter(Sender: TObject);
     procedure Button_TreeViewFreshMouseLeave(Sender: TObject);
     procedure Button_Wnd_RecordMouseEnter(Sender: TObject);
@@ -271,6 +269,7 @@ type
     procedure Memo_TmpRecMouseLeave(Sender: TObject);
     procedure MenuItem_Lay_ImgMergeClick(Sender: TObject);
     procedure MenuItem_Wndlist_BringToFrontClick(Sender: TObject);
+    procedure MenuItem_Wndlist_Recorder_SetAsTargetWindowClick(Sender: TObject);
     procedure MenuItem_Wndlist_Scale_ClientClick(Sender: TObject);
     procedure MenuItem_Wndlist_Scale_FormClick(Sender: TObject);
     procedure RadioGroup_DelayModeClick(Sender: TObject);
@@ -1418,6 +1417,11 @@ begin
   BringWindowToTop(tmpWnd.Handle);
 end;
 
+procedure TForm_Routiner.MenuItem_Wndlist_Recorder_SetAsTargetWindowClick(Sender: TObject);
+begin
+
+end;
+
 procedure TForm_Routiner.MenuItem_Wndlist_Scale_ClientClick(Sender: TObject);
 var tmpWnd:TMR_Window;
 begin
@@ -1686,7 +1690,7 @@ begin
   Setting.RecOption.RecSyntaxMode:=smRapid;
   SettingOri:=false;
   Button_Wnd_Synthesis.ShowHint:=true;
-  Button_Wnd_Synthesis.Hint:='按Ctrl+`切换状态';
+  Button_Wnd_Synthesis.Hint:='使用快捷指令`切换状态';
 
   for page:=0 to RuleCount do
     begin
@@ -1786,7 +1790,7 @@ begin
       Self.CheckBoxs[i].OnChange:=@Self.CheckBoxs[i].CheckOnChange;
 
       Self.CheckBoxs[i].ShowHint:=true;
-      Self.CheckBoxs[i].Hint:='按Ctrl+'+IntToStr(i+1)+'切换状态';
+      Self.CheckBoxs[i].Hint:='使用快捷指令'+IntToStr(i+1)+'切换状态';
 
       //同步按钮布局
       with Self.Edits[i] do begin
@@ -2063,21 +2067,21 @@ var i:byte;
     btn:TButton;
 begin
   btn:=Sender as TButton;
-  if btn.Caption = '锁定窗口设置' then
+  if btn.Caption = '窗体锁定' then
     begin
-      btn.Caption:='解锁窗口设置';
+      btn.Caption:='窗体解锁';
       for i:=0 to SynCount do Self.Buttons[i].Enabled:=false;
     end
   else
     begin
-      btn.Caption:='锁定窗口设置';
+      btn.Caption:='窗体锁定';
       for i:=0 to SynCount do Self.Buttons[i].Enabled:=true;
     end;
 end;
 
 procedure TForm_Routiner.Button_excelMouseEnter(Sender: TObject);
 begin
-  if (Sender as TButton).Caption='锁定窗口设置' then Self.ShowManual('单击锁定窗体句柄设置。')
+  if (Sender as TButton).Caption='窗体锁定' then Self.ShowManual('单击锁定窗体句柄设置。')
   else Self.ShowManual('单击解锁窗体句柄设置。');
 end;
 
@@ -2236,25 +2240,12 @@ end;
 
 procedure TForm_Routiner.Button_MouseOriMouseEnter(Sender: TObject);
 begin
-  if Self.MouseHookEnabled then Self.ShowManual('点击按键后单击屏幕任意一处设置为鼠标录制原点。')
-  else Self.ShowManual('若需要设置鼠标录制原点，请先打开鼠标钩子。');
+  Self.ShowManual('在窗体列表中通过右键菜单设置目标窗体。');
 end;
 
 procedure TForm_Routiner.Button_MouseOriMouseLeave(Sender: TObject);
 begin
   Self.ShowManual('');
-end;
-
-procedure TForm_Routiner.Button_MouseOriMouseUp(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-begin
-  if not Self.MouseHookEnabled then exit;
-  AdapterForm.SetMouseOriMode:=true;
-  with Sender as TButton do
-    begin
-      Enabled:=false;
-      Caption:='单击设置录制原点';
-    end;
 end;
 
 procedure TForm_Routiner.Button_TreeViewFreshMouseEnter(Sender: TObject);
@@ -2544,7 +2535,7 @@ procedure TForm_Routiner.Button_Wnd_RecordClick(Sender: TObject);
 begin
   if not AdapterForm.RecordMode then
     begin
-      (Sender as TButton).Caption:='结束录制键盘';
+      (Sender as TButton).Caption:='结束录制';
       (Sender as TButton).Font.Bold:=true;
       (Sender as TButton).Font.Color:=clRed;
       Self.StatusBar.Panels.Items[5].Text:='录制';
@@ -2552,7 +2543,7 @@ begin
     end
   else
     begin
-      (Sender as TButton).Caption:='开始录制键盘';
+      (Sender as TButton).Caption:='开始录制';
       (Sender as TButton).Font.Bold:=false;
       (Sender as TButton).Font.Color:=clDefault;
       Self.StatusBar.Panels.Items[5].Text:='';
@@ -2564,14 +2555,14 @@ procedure TForm_Routiner.Button_Wnd_SynthesisClick(Sender: TObject);
 begin
   if not AdapterForm.SynchronicMode then
     begin
-      (Sender as TButton).Caption:='结束同步键盘';
+      (Sender as TButton).Caption:='结束同步';
       (Sender as TButton).Font.Bold:=true;
       Self.StatusBar.Panels.Items[3].Text:='同步';
       AdapterForm.SynchronicMode:=true;
     end
   else
     begin
-      (Sender as TButton).Caption:='开始同步键盘';
+      (Sender as TButton).Caption:='开始同步';
       (Sender as TButton).Font.Bold:=false;
       Self.StatusBar.Panels.Items[3].Text:='';
       AdapterForm.SynchronicMode:=false;

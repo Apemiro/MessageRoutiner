@@ -189,15 +189,14 @@ object Form_Routiner: TForm_Routiner
         AnchorSideRight.Control = GroupBox_OffsetSetting
         AnchorSideRight.Side = asrBottom
         AnchorSideBottom.Side = asrCenter
-        Left = 98
+        Left = 134
         Height = 28
         Top = 6
-        Width = 288
+        Width = 252
         Anchors = [akTop, akLeft, akRight]
-        Caption = '(0,0)'
+        Caption = '桌面'
         OnMouseEnter = Button_MouseOriMouseEnter
         OnMouseLeave = Button_MouseOriMouseLeave
-        OnMouseUp = Button_MouseOriMouseUp
         ParentShowHint = False
         TabOrder = 0
       end
@@ -207,10 +206,10 @@ object Form_Routiner: TForm_Routiner
         Left = 8
         Height = 24
         Top = 8
-        Width = 90
+        Width = 126
         BorderSpacing.Left = 8
         BorderSpacing.Top = 8
-        Caption = '鼠标原点：'
+        Caption = '使用窗体坐标：'
         ParentColor = False
       end
       object Label_TimerOffset: TLabel
@@ -228,10 +227,10 @@ object Form_Routiner: TForm_Routiner
         AnchorSideTop.Control = Label_TimerOffset
         AnchorSideTop.Side = asrCenter
         AnchorSideRight.Control = Label_TimerOffset_Unit
-        Left = 98
+        Left = 134
         Height = 32
         Top = 38
-        Width = 196
+        Width = 160
         Anchors = [akTop, akLeft, akRight]
         BorderSpacing.Right = 8
         OnMouseEnter = Edit_TimerOffsetMouseEnter
@@ -555,7 +554,7 @@ object Form_Routiner: TForm_Routiner
       Top = 0
       Width = 230
       Anchors = [akTop, akLeft, akRight]
-      Caption = '录制键盘'
+      Caption = '开始录制'
       Font.Pitch = fpVariable
       Font.Quality = fqDraft
       OnClick = Button_Wnd_RecordClick
@@ -575,7 +574,7 @@ object Form_Routiner: TForm_Routiner
       Top = 28
       Width = 230
       Anchors = [akTop, akLeft, akRight]
-      Caption = '同步键盘'
+      Caption = '开始同步'
       Font.Pitch = fpVariable
       Font.Quality = fqDraft
       OnClick = Button_Wnd_SynthesisClick
@@ -595,7 +594,7 @@ object Form_Routiner: TForm_Routiner
       Top = 56
       Width = 230
       Anchors = [akTop, akLeft, akRight]
-      Caption = '锁定同步'
+      Caption = '窗体锁定'
       Font.Pitch = fpVariable
       Font.Quality = fqDraft
       OnClick = Button_excelClick
@@ -5962,6 +5961,13 @@ object Form_Routiner: TForm_Routiner
       object MenuItem_Wndlist_Scale_Client: TMenuItem
         Caption = '用户区'
         OnClick = MenuItem_Wndlist_Scale_ClientClick
+      end
+    end
+    object MenuItem_Wndlist_Recorder: TMenuItem
+      Caption = '录制器'
+      object MenuItem_Wndlist_Recorder_SetAsTargetWindow: TMenuItem
+        Caption = '设置为目标窗体'
+        OnClick = MenuItem_Wndlist_Recorder_SetAsTargetWindowClick
       end
     end
   end
