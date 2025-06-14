@@ -16,7 +16,7 @@ uses
 
 const
 
-  version_number = '0.2.12';
+  version_number = '0.2.13';
 
   RuleCount      = 9;{不能大于31，否则设置保存会出问题}
   SynCount       = 4;{不能大于9，也不推荐9；也不推荐4以下，这会导致自动布局效果很差}
@@ -234,8 +234,6 @@ type
       Shift: TShiftState);
     procedure Button_MouseOriMouseEnter(Sender: TObject);
     procedure Button_MouseOriMouseLeave(Sender: TObject);
-    procedure Button_MouseOriMouseUp(Sender: TObject; Button: TMouseButton;
-      Shift: TShiftState; X, Y: Integer);
     procedure Button_TreeViewFreshMouseEnter(Sender: TObject);
     procedure Button_TreeViewFreshMouseLeave(Sender: TObject);
     procedure Button_Wnd_RecordMouseEnter(Sender: TObject);
@@ -271,6 +269,7 @@ type
     procedure Memo_TmpRecMouseLeave(Sender: TObject);
     procedure MenuItem_Lay_ImgMergeClick(Sender: TObject);
     procedure MenuItem_Wndlist_BringToFrontClick(Sender: TObject);
+    procedure MenuItem_Wndlist_Recorder_SetAsTargetWindowClick(Sender: TObject);
     procedure MenuItem_Wndlist_Scale_ClientClick(Sender: TObject);
     procedure MenuItem_Wndlist_Scale_FormClick(Sender: TObject);
     procedure RadioGroup_DelayModeClick(Sender: TObject);
@@ -287,7 +286,6 @@ type
     procedure SpinEdit_MergerPixelWidthChange(Sender: TObject);
     procedure SpinEdit_MergerPixelWidthMouseEnter(Sender: TObject);
     procedure SpinEdit_MergerPixelWidthMouseLeave(Sender: TObject);
-    procedure TreeViewEditOnChange(Sender:TObject);
     procedure Button_TreeViewFreshClick(Sender: TObject);
     procedure Button_Wnd_RecordClick(Sender: TObject);
     procedure Button_Wnd_SynthesisClick(Sender: TObject);
@@ -337,8 +335,6 @@ type
     procedure WindowPosPadWindMouseEnter(Sender: TObject);
     procedure WindowPosPadWindMouseLeave(Sender: TObject);
 
-  private
-    Tim:TTimer;//因为不知道怎么处理汉字输入法造成连续的OnChange事件，迫不得已采用延时50ms检测连续输入的办法。
   public
     Layout:record
       LayoutCode:TLayoutSet;//布局类型
@@ -430,9 +426,9 @@ type
     LastMessage:TMessage;
     TimeOffset:longint;//rtmWaittimer模式的初始时间
 
-  private //鼠标指正坐标压栈
+  private //鼠标指针坐标压栈
     FPMouseCursor:PMouseCursor;
-  public //鼠标指正坐标压栈
+  public //鼠标指针坐标压栈
     procedure PushMouseCursor(point:TPoint);
     function PopMouseCursor:TPoint;
 
@@ -460,7 +456,7 @@ type
 
   private
     function WndListDispName(tmpWindow:TMR_Window):string;
-    procedure Recur_WindowsFilter(AWindow:TMR_Window; ATreeNode:TTreeNode);
+    procedure Recur_WindowsFilter(AWindow:TMR_Window; ATreeNode:TTreeNode; parent_match:boolean);
   public
     procedure CurrentAufStrAdd(str:string);inline;
     procedure WindowsFilter;
@@ -607,115 +603,7 @@ begin
   Form_Routiner.Memo_Tmp.Lines.Add(str);
   Form_Routiner.Memo_Tmp.Lines.Add('');
 end;
-{
-procedure ClearWindows(wnd:TWindow);
-begin
-  if not assigned(wnd) then exit;
-  Application.ProcessMessages;
-  while wnd.child.count <> 0 do
-    begin
-      ClearWindows(TWindow(wnd.child.Extract(wnd.child.first)));
-    end;
-  wnd.child.free;
-  wnd.free;
-end;
 
-procedure GetChildWindows(wnd:TWindow;filter:string='';UseReg:boolean=false);
-var hd:HWND;
-    info:tagWindowInfo;
-    w,h:word;
-    title,classname,caption:string;
-    ttmp,ctmp:{PChar}array[0..199]of char;
-    new_wnd:TWindow;
-    FilterRes:boolean;
-begin
-  hd:=GetWindow(wnd.info.hd,GW_CHILD);
-  while hd<>0 do
-    begin
-      GetWindowText(hd,ttmp,200);
-      GetClassName(hd,ctmp,200);
-      title:=ttmp;
-      classname:=ctmp;
-      GetWindowInfo(hd,info);
-      w:=info.rcWindow.Right-info.rcWindow.Left;
-      h:=info.rcWindow.Bottom-info.rcWindow.Top;
-      new_wnd:=TWindow.Create(hd,wincptoutf8(title),wincptoutf8(classname),info.rcWindow.Left,info.rcWindow.Top,w,h);
-      new_wnd.parent:=Wnd;
-      if new_wnd.parent.info.name='WndRoot' then new_wnd.info.fullname:='['+IntToHex(new_wnd.info.hd,8)+']'+new_wnd.info.name
-      else new_wnd.info.fullname:=new_wnd.parent.info.fullname+'/['+IntToHex(new_wnd.info.hd,8)+']'+new_wnd.info.name;
-      wnd.child.add(new_wnd);
-      WndFlat.Objects[WndFlat.Add(new_wnd.info.fullname)]:=new_wnd;
-      if title='' then title:=' ';
-
-      if filter='' then FilterRes:=true
-      else begin
-        if UseReg then begin
-          Reg.Expression:=filter;
-          try
-            FilterRes:=Reg.Exec(title);
-            if not FilterRes then FilterRes:=Reg.Exec(classname);
-          except
-            FilterRes:=true;
-          end;
-        end else begin
-          FilterRes:=(pos(lowercase(filter),lowercase(title))>0) or (pos(lowercase(filter),lowercase(classname))>0)
-        end;
-      end;
-
-      IF FilterRes THEN
-        BEGIN
-          with Form_Routiner.Setting.WndListShowingOption do
-            begin
-              if HwndVisible then caption:='['+IntToHex(hd,8)+']' else caption:='';
-              if PositionVisible then caption:=caption+'[W='+Usf.zeroplus(w,5)+' H='+Usf.zeroplus(h,5)+' L='+Usf.zeroplus(info.rcWindow.Left,5)+' T='+Usf.zeroplus(info.rcWindow.Top,5)+']';
-              if WndNameVisible then caption:=caption + Usf.left_adjust(title,NameCell,AlignCell);
-              if ClassNameVisible then caption:=caption + ' [CLASS]'+classname;
-              caption:=wincptoutf8(trim(caption));
-            end;
-          if (new_wnd.parent.node)=nil then
-            begin
-              Form_Routiner.TreeView_Wnd.Items.add(nil,caption)
-            end
-          else
-            begin
-              Form_Routiner.TreeView_Wnd.Items.addchild((new_wnd.parent.node) as TTreeNode,caption);
-            end;
-          new_wnd.node:=Form_Routiner.TreeView_Wnd.Items[Form_Routiner.TreeView_Wnd.Items.count-1];
-          (new_wnd.node as TTreeNode).data:=new_wnd;
-          GetChildWindows(new_wnd{, filter, UseReg});//很显然不应该在次级窗体中应用筛选
-        END;
-
-      hd:=GetNextWindow(hd,GW_HWNDNEXT);
-
-    end;
-end;
-
-
-procedure WndFinder(filter:string='';UseReg:boolean=false);
-var hd:HWND;
-    info:tagWindowInfo;
-begin
-  Form_Routiner.TreeView_Wnd.BeginUpdate;
-  try
-    ClearWindows(WndRoot);
-    WndFlat.Clear;
-    hd:=GetDesktopWindow;//得到桌面窗口
-    GlobalExpressionList.TryAddExp('desktop',narg('',IntToStr(hd),''));
-    WndRoot:=TWindow.Create(hd,'WndRoot','',0,0,0,0);
-    WndRoot.parent:=nil;
-    WndRoot.node:=nil;
-    WndFlat.Objects[WndFlat.Add('')]:=nil;
-
-    GetWindowInfo(hd,info);
-    Desktop.Width:=info.rcWindow.Right-info.rcWindow.Left;
-    Desktop.Height:=info.rcWindow.Bottom-info.rcWindow.Top;
-
-    GetChildWindows(WndRoot,filter,UseReg);
-  finally
-    Form_Routiner.TreeView_Wnd.EndUpdate;
-  end;
-end;
-}
 
 {$I aufunc.inc}
 
@@ -1247,20 +1135,23 @@ begin
   end;
 end;
 
-procedure TForm_Routiner.Recur_WindowsFilter(AWindow:TMR_Window; ATreeNode:TTreeNode);
+procedure TForm_Routiner.Recur_WindowsFilter(AWindow:TMR_Window; ATreeNode:TTreeNode; parent_match:boolean);
 var tmpWindow:TMR_Window;
     tmpTreeNode:TTreeNode;
+    name_match:boolean;
 begin
   for tmpWindow in AWindow do begin
-    with Setting.WndListShowingOption do
-    if UseReg then begin
-      if not Reg.Exec(tmpWindow.Name) then continue;
-    end else begin
-      if (NameReg<>'') and (Pos(NameReg,tmpWindow.Name)<=0) then continue;
-    end;
+    if not parent_match then with Setting.WndListShowingOption do begin
+      if UseReg then begin
+        name_match := Reg.Exec(tmpWindow.Name);
+      end else begin
+        name_match := (NameReg='') or (Pos(NameReg,tmpWindow.Name)>0);
+      end;
+    end else name_match:=true;
+    if not name_match then continue;
     tmpTreeNode:=TreeView_Wnd.Items.AddChild(ATreeNode,WndListDispName(tmpWindow));
     tmpTreeNode.Data:=tmpWindow;
-    Recur_WindowsFilter(tmpWindow, tmpTreeNode);
+    Recur_WindowsFilter(tmpWindow, tmpTreeNode, name_match);
   end;
 end;
 
@@ -1274,7 +1165,7 @@ begin
   tmpTreeNode.Data:=WindowsTreeRoot;
   Reg.Expression:=Setting.WndListShowingOption.NameReg;
   if Reg.Expression='' then Reg.Expression:='.';
-  Recur_WindowsFilter(WindowsTreeRoot, tmpTreeNode);
+  Recur_WindowsFilter(WindowsTreeRoot, tmpTreeNode, false);
   tmpTreeNode.Expanded:=true;
 end;
 
@@ -1416,6 +1307,19 @@ begin
   tmpWnd:=Form_Routiner.GetSelectedWindow;
   if tmpWnd=nil then exit;
   BringWindowToTop(tmpWnd.Handle);
+end;
+
+procedure TForm_Routiner.MenuItem_Wndlist_Recorder_SetAsTargetWindowClick(Sender: TObject);
+var tmpWnd:TMR_Window;
+    tmpCap:string;
+begin
+  tmpWnd:=Form_Routiner.GetSelectedWindow;
+  if tmpWnd=nil then exit;
+  AdapterForm.Option.Rec.TargetWindow:=tmpWnd.Handle;
+  if tmpWnd.Handle = WindowsTreeRoot.Handle then tmpCap:='桌面'
+  else tmpCap:=Format('[%.8x] %s ',[tmpWnd.Handle,tmpWnd.Name]);
+  Button_MouseOri.Caption:=Copy(tmpCap,1,10);
+  Button_MouseOri.Hint:=tmpCap;
 end;
 
 procedure TForm_Routiner.MenuItem_Wndlist_Scale_ClientClick(Sender: TObject);
@@ -1686,7 +1590,7 @@ begin
   Setting.RecOption.RecSyntaxMode:=smRapid;
   SettingOri:=false;
   Button_Wnd_Synthesis.ShowHint:=true;
-  Button_Wnd_Synthesis.Hint:='按Ctrl+`切换状态';
+  Button_Wnd_Synthesis.Hint:='使用快捷指令`切换状态';
 
   for page:=0 to RuleCount do
     begin
@@ -1786,7 +1690,7 @@ begin
       Self.CheckBoxs[i].OnChange:=@Self.CheckBoxs[i].CheckOnChange;
 
       Self.CheckBoxs[i].ShowHint:=true;
-      Self.CheckBoxs[i].Hint:='按Ctrl+'+IntToStr(i+1)+'切换状态';
+      Self.CheckBoxs[i].Hint:='使用快捷指令'+IntToStr(i+1)+'切换状态';
 
       //同步按钮布局
       with Self.Edits[i] do begin
@@ -1866,12 +1770,6 @@ begin
 
   //Self.BorderStyle:=bsSingle;
 
-  WindowsFilter;
-  ScreenViewer:=TMR_WndView.Create(WindowPosPad, ScreensList);
-  ScreenViewer.Parent:=WindowPosPad;
-  ScreenViewer.Align:=alClient;
-
-
   MergerAuf:=TAuf.Create(Self);
   MergerAuf.Script.Func_process.Setting:=@Routiner_Setting;//不一定用得到，还是加上吧
   MergerAuf.Script.InternalFuncDefine;
@@ -1901,9 +1799,6 @@ begin
   FormResize(nil);
 
   FPMouseCursor:=nil;
-
-  tim:=TTimer.Create(Self);
-  tim.OnTimer:=@Self.TreeViewEditOnChange;
 
   Self.LastMessage.msg:=0;
   Self.LastMessage.lParam:=0;
@@ -1954,7 +1849,10 @@ begin
 
     end;
 
-  //AdapterForm.Show;
+  WindowsFilter;
+  ScreenViewer:=TMR_WndView.Create(WindowPosPad, ScreensList);
+  ScreenViewer.Parent:=WindowPosPad;
+  ScreenViewer.Align:=alClient;
 
 end;
 
@@ -2063,21 +1961,21 @@ var i:byte;
     btn:TButton;
 begin
   btn:=Sender as TButton;
-  if btn.Caption = '锁定窗口设置' then
+  if btn.Caption = '窗体锁定' then
     begin
-      btn.Caption:='解锁窗口设置';
+      btn.Caption:='窗体解锁';
       for i:=0 to SynCount do Self.Buttons[i].Enabled:=false;
     end
   else
     begin
-      btn.Caption:='锁定窗口设置';
+      btn.Caption:='窗体锁定';
       for i:=0 to SynCount do Self.Buttons[i].Enabled:=true;
     end;
 end;
 
 procedure TForm_Routiner.Button_excelMouseEnter(Sender: TObject);
 begin
-  if (Sender as TButton).Caption='锁定窗口设置' then Self.ShowManual('单击锁定窗体句柄设置。')
+  if (Sender as TButton).Caption='窗体锁定' then Self.ShowManual('单击锁定窗体句柄设置。')
   else Self.ShowManual('单击解锁窗体句柄设置。');
 end;
 
@@ -2236,25 +2134,12 @@ end;
 
 procedure TForm_Routiner.Button_MouseOriMouseEnter(Sender: TObject);
 begin
-  if Self.MouseHookEnabled then Self.ShowManual('点击按键后单击屏幕任意一处设置为鼠标录制原点。')
-  else Self.ShowManual('若需要设置鼠标录制原点，请先打开鼠标钩子。');
+  Self.ShowManual('在窗体列表中通过右键菜单设置目标窗体。');
 end;
 
 procedure TForm_Routiner.Button_MouseOriMouseLeave(Sender: TObject);
 begin
   Self.ShowManual('');
-end;
-
-procedure TForm_Routiner.Button_MouseOriMouseUp(Sender: TObject;
-  Button: TMouseButton; Shift: TShiftState; X, Y: Integer);
-begin
-  if not Self.MouseHookEnabled then exit;
-  AdapterForm.SetMouseOriMode:=true;
-  with Sender as TButton do
-    begin
-      Enabled:=false;
-      Caption:='单击设置录制原点';
-    end;
 end;
 
 procedure TForm_Routiner.Button_TreeViewFreshMouseEnter(Sender: TObject);
@@ -2380,8 +2265,11 @@ var msgtext:string;
 begin
   with Sender as TCheckGroup do
     begin
-      AdapterForm.Option.Rec.BKeybd:=Checked[0];
-      AdapterForm.Option.Rec.BMouse:=Checked[1];
+      AdapterForm.Option.Rec.BKeybd      := Checked[0];
+      AdapterForm.Option.Rec.BChar       := Checked[1];
+      AdapterForm.Option.Rec.BMouse      := Checked[2];
+      AdapterForm.Option.Rec.BMouseMov   := Checked[3];
+      AdapterForm.Option.Rec.BPushCursor := Checked[4];
     end;
   msgtext:='';
   if (not Self.MouseHookEnabled) and Self.Setting.RecOption.RecMouse then msgtext:=msgtext + '鼠标钩子未启用，鼠标录制功能无效。'+#13+#10;
@@ -2541,7 +2429,7 @@ procedure TForm_Routiner.Button_Wnd_RecordClick(Sender: TObject);
 begin
   if not AdapterForm.RecordMode then
     begin
-      (Sender as TButton).Caption:='结束录制键盘';
+      (Sender as TButton).Caption:='结束录制';
       (Sender as TButton).Font.Bold:=true;
       (Sender as TButton).Font.Color:=clRed;
       Self.StatusBar.Panels.Items[5].Text:='录制';
@@ -2549,7 +2437,7 @@ begin
     end
   else
     begin
-      (Sender as TButton).Caption:='开始录制键盘';
+      (Sender as TButton).Caption:='开始录制';
       (Sender as TButton).Font.Bold:=false;
       (Sender as TButton).Font.Color:=clDefault;
       Self.StatusBar.Panels.Items[5].Text:='';
@@ -2561,14 +2449,14 @@ procedure TForm_Routiner.Button_Wnd_SynthesisClick(Sender: TObject);
 begin
   if not AdapterForm.SynchronicMode then
     begin
-      (Sender as TButton).Caption:='结束同步键盘';
+      (Sender as TButton).Caption:='结束同步';
       (Sender as TButton).Font.Bold:=true;
       Self.StatusBar.Panels.Items[3].Text:='同步';
       AdapterForm.SynchronicMode:=true;
     end
   else
     begin
-      (Sender as TButton).Caption:='开始同步键盘';
+      (Sender as TButton).Caption:='开始同步';
       (Sender as TButton).Font.Bold:=false;
       Self.StatusBar.Panels.Items[3].Text:='';
       AdapterForm.SynchronicMode:=false;
@@ -2584,19 +2472,7 @@ begin
     exit;
   end;
   Setting.WndListShowingOption.NameReg:=Edit_TreeView.Caption;
-  {
-  //Self.Button_TreeViewFresh.OnClick(nil);
-  tim.Interval:=50;
-  tim.Enabled:=true;
-  //这个问题肯定没有结束，目前用50ms以后重新刷新的方法迟早会再暴露出问题
-  }
   WindowsFilter;
-end;
-
-procedure TForm_Routiner.TreeViewEditOnChange(Sender:TObject);
-begin
-  WindowsFilter;
-  Self.tim.Enabled:=false;
 end;
 
 procedure TForm_Routiner.SetLayout(layoutcode:byte);

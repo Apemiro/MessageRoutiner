@@ -23,6 +23,7 @@ type
     pressed:boolean;
     DownWhen:longint;
   end;
+  TMouseStatusSet = set of TMouseButton;
 
   { TAdapterForm }
 
@@ -52,7 +53,10 @@ type
     Status:record
       Rec:record
         SettingOri:boolean;//是否处在设置鼠标动作原点的状态
-        MouseOri:record x,y:longint;end;//鼠标记录的坐标原点
+        MouseOri:Classes.TPoint;//鼠标记录的坐标原点
+        TargetRect:Classes.TRect;//有效的鼠标坐标
+        LastMousePos:Classes.TPoint;//上一个记录的鼠标坐标
+        MouseStatus:TMouseStatusSet;
         LastRecTime:longint;//录制过程中表示上一个记录时间，作差用来确定sleep的参数
         FirstRecTime:longint;//录制过程中表示第一个记录时间，作差用来确定waittimer的参数
         LastMessage:TMessage;
@@ -73,6 +77,9 @@ type
     Option:record
       Rec:record
         BKeybd,BMouse:boolean;//是否记录键盘或鼠标消息
+        BChar:boolean;//是否生成键盘按下抬起之间的字符消息
+        BMouseMov,BPushCursor:boolean;//是否记录额外的鼠标指令
+        TargetWindow:HWND;
         TimeMode:TRecTimeMode;
         SyntaxMode:TRecSyntaxMode;
       end;//录制器设置
@@ -170,6 +177,15 @@ begin
     WM_RButtonDblClk:result:='"RB"';
     else result:='""';
   end;
+end;
+function MouseStatusToChar(st:TMouseStatusSet):string;
+begin
+  result:='';
+  if mbLeft in st then result:=result+'L';
+  if mbRight in st then result:=result+'R';
+  if mbMiddle in st then result:=result+'M';
+  if mbExtra1 in st then result:=result+'1';
+  if mbExtra2 in st then result:=result+'2';
 end;
 function KeyToSyn(km:byte):string;
 begin
@@ -525,10 +541,22 @@ begin
   AufScriptFrames[PageControl.ActivePageIndex].Frame.Memo_cmd.Lines.Append(str);
 end;
 procedure TAdapterForm.StartRecord;
+var info:TWindowInfo;
 begin
   Self.FRecordMode:=true;
   Self.Status.Rec.LastRecTime:=GetTimeNumber;
   Self.Status.Rec.FirstRecTime:=GetTimeNumber;
+  Self.Status.Rec.LastMousePos:=Classes.Point(High(Integer),High(Integer));//确保第一个鼠标消息能符合鼠标有移动的判断条件
+  Self.Status.Rec.MouseStatus:=[];
+  if (Self.Option.Rec.TargetWindow = WindowsTreeRoot.Handle) or (Self.Option.Rec.TargetWindow = 0) then begin
+    Self.Status.Rec.TargetRect:=ScreensList.VirtualScreenRect;
+    Self.Status.Rec.MouseOri:=Classes.Point(0,0);
+  end else begin
+    GetWindowInfo(Self.Option.Rec.TargetWindow,info);
+    Self.Status.Rec.TargetRect:=info.rcClient;
+    Self.Status.Rec.MouseOri:=Self.Status.Rec.TargetRect.TopLeft;
+  end;
+  RecordAufScript('//define win @win0');
   if Self.Option.Rec.TimeMode=rtmWaittimer then RecordAufScript('settimer');
 end;
 procedure TAdapterForm.EndRecord;
@@ -562,6 +590,7 @@ end;
 
 procedure TAdapterForm.RecordProc(Msg:TMessage);//录制器过程
 var NowTimeNumber,NowTmp:longint;
+    MousePos:Classes.TPoint;
 begin
   CASE Msg.msg OF
     WM_CHAR,WM_SYSCHAR:;
@@ -584,28 +613,64 @@ begin
       END;
     WM_LButtonDown,WM_LButtonUp,WM_LButtonDblClk,
     WM_RButtonDown,WM_RButtonUp,WM_RButtonDblClk,
-    WM_MButtonDown,WM_MButtonUp,WM_MButtonDblClk:
+    WM_MButtonDown,WM_MButtonUp,WM_MButtonDblClk,
+    WM_XBUTTONDOWN,WM_XBUTTONUP,WM_XBUTTONDBLCLK:
       BEGIN
         //录制
         if not Self.Option.Rec.BMouse then exit;//没有选择鼠标消息录制则退出
         NowTimeNumber:=GetTimeNumber;
         if NowTimeNumber<Self.Status.Rec.LastRecTime then inc(NowTimeNumber,86400000);//跨子夜时间处理
+        //更新按键状态
+        WITH Self.Status.Rec do BEGIN
+          CASE Msg.msg OF
+            WM_LButtonDown: MouseStatus := MouseStatus + [mbLeft];
+            WM_LButtonUp:   MouseStatus := MouseStatus - [mbLeft];
+            WM_RButtonDown: MouseStatus := MouseStatus + [mbRight];
+            WM_RButtonUp:   MouseStatus := MouseStatus - [mbRight];
+            WM_MButtonDown: MouseStatus := MouseStatus + [mbMiddle];
+            WM_MButtonUp:   MouseStatus := MouseStatus - [mbMiddle];
+            WM_XBUTTONDOWN:
+              case Msg.wParam shr 16 of
+                1: MouseStatus := MouseStatus + [mbExtra1];
+                2: MouseStatus := MouseStatus + [mbExtra2];
+              end;
+            WM_XBUTTONUP:
+              case Msg.wParam shr 16 of
+                1: MouseStatus := MouseStatus - [mbExtra1];
+                2: MouseStatus := MouseStatus - [mbExtra2];
+              end;
+          END;
+        END;
+        if not Status.Rec.TargetRect.Contains(Classes.Point(Msg.wParam,Msg.lParam)) then exit;//如果不符合目标窗体就退出
+        MousePos:=Classes.Point(
+          Msg.wParam-Self.Status.Rec.MouseOri.x,
+          Msg.lParam-Self.Status.Rec.MouseOri.y
+        );
         case Self.Option.Rec.TimeMode of
           rtmSleep:
             RecordAufScript('sleep '+IntToStr(NowTimeNumber-Self.Status.Rec.LastRecTime));
           rtmWaittimer:
             RecordAufScript('waittimer '+IntToStr(NowTimeNumber-Self.Status.Rec.FirstRecTime));
         end;
+        if Self.Option.Rec.BPushCursor then RecordAufScript('pushcursor '+IntToStr(MousePos.x)+','+IntToStr(MousePos.y));
+        if (Self.Option.Rec.BMouseMov) and (MousePos <> Self.Status.Rec.LastMousePos) then
+          begin
+            RecordAufScript('mousemov @win, "'+MouseStatusToChar(Self.Status.Rec.MouseStatus)+'",'
+              +IntToStr(MousePos.x)+','
+              +IntToStr(MousePos.y));
+          end;
+        Self.Status.Rec.LastMousePos:=MousePos;
         CASE Self.Option.Rec.SyntaxMode OF
           smChar:
             RecordAufScript('mouse @win,'+MouseMsgToChar(Msg.msg)+','
-              +IntToStr(Msg.wParam-Self.Status.Rec.MouseOri.x)+','
-              +IntToStr(Msg.lParam-Self.Status.Rec.MouseOri.y));
+              +IntToStr(MousePos.x)+','
+              +IntToStr(MousePos.y));
           smRapid:
             RecordAufScript('post @win,'+IntToStr(Msg.msg)+',0,'
-              +IntToStr((word(Msg.lParam-Self.Status.Rec.MouseOri.y) shl 16)
-              +dword(Msg.wParam-Self.Status.Rec.MouseOri.x)));
+              +IntToStr((word(MousePos.y) shl 16)
+              +dword(MousePos.x)));
         END;
+        if Self.Option.Rec.BPushCursor then RecordAufScript('popcursor');
         Self.Status.Rec.LastRecTime:=NowTimeNumber;
       END;
     ELSE ;
