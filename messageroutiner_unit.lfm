@@ -191,6 +191,7 @@ object Form_Routiner: TForm_Routiner
         AnchorSideBottom.Side = asrCenter
         Left = 134
         Height = 28
+        Hint = '桌面'
         Top = 6
         Width = 252
         Anchors = [akTop, akLeft, akRight]
@@ -198,6 +199,7 @@ object Form_Routiner: TForm_Routiner
         OnMouseEnter = Button_MouseOriMouseEnter
         OnMouseLeave = Button_MouseOriMouseLeave
         ParentShowHint = False
+        ShowHint = True
         TabOrder = 0
       end
       object Label_MouseOri: TLabel

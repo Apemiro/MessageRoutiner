@@ -1418,8 +1418,16 @@ begin
 end;
 
 procedure TForm_Routiner.MenuItem_Wndlist_Recorder_SetAsTargetWindowClick(Sender: TObject);
+var tmpWnd:TMR_Window;
+    tmpCap:string;
 begin
-
+  tmpWnd:=Form_Routiner.GetSelectedWindow;
+  if tmpWnd=nil then exit;
+  AdapterForm.Option.Rec.TargetWindow:=tmpWnd.Handle;
+  if tmpWnd.Handle = WindowsTreeRoot.Handle then tmpCap:='桌面'
+  else tmpCap:=Format('[%.8x] %s ',[tmpWnd.Handle,tmpWnd.Name]);
+  Button_MouseOri.Caption:=Copy(tmpCap,1,10);
+  Button_MouseOri.Hint:=tmpCap;
 end;
 
 procedure TForm_Routiner.MenuItem_Wndlist_Scale_ClientClick(Sender: TObject);

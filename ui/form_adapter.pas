@@ -54,6 +54,7 @@ type
       Rec:record
         SettingOri:boolean;//是否处在设置鼠标动作原点的状态
         MouseOri:Classes.TPoint;//鼠标记录的坐标原点
+        TargetRect:Classes.TRect;//有效的鼠标坐标
         LastMousePos:Classes.TPoint;//上一个记录的鼠标坐标
         MouseStatus:TMouseStatusSet;
         LastRecTime:longint;//录制过程中表示上一个记录时间，作差用来确定sleep的参数
@@ -78,6 +79,7 @@ type
         BKeybd,BMouse:boolean;//是否记录键盘或鼠标消息
         BChar:boolean;//是否生成键盘按下抬起之间的字符消息
         BMouseMov,BPushCursor:boolean;//是否记录额外的鼠标指令
+        TargetWindow:HWND;
         TimeMode:TRecTimeMode;
         SyntaxMode:TRecSyntaxMode;
       end;//录制器设置
@@ -539,12 +541,22 @@ begin
   AufScriptFrames[PageControl.ActivePageIndex].Frame.Memo_cmd.Lines.Append(str);
 end;
 procedure TAdapterForm.StartRecord;
+var info:TWindowInfo;
 begin
   Self.FRecordMode:=true;
   Self.Status.Rec.LastRecTime:=GetTimeNumber;
   Self.Status.Rec.FirstRecTime:=GetTimeNumber;
   Self.Status.Rec.LastMousePos:=Classes.Point(High(Integer),High(Integer));//确保第一个鼠标消息能符合鼠标有移动的判断条件
   Self.Status.Rec.MouseStatus:=[];
+  if Self.Option.Rec.TargetWindow = WindowsTreeRoot.Handle then begin
+    Self.Status.Rec.TargetRect:=ScreensList.VirtualScreenRect;
+    Self.Status.Rec.MouseOri:=Classes.Point(0,0);
+  end else begin
+    GetWindowInfo(Self.Option.Rec.TargetWindow,info);
+    Self.Status.Rec.TargetRect:=info.rcClient;
+    Self.Status.Rec.MouseOri:=Self.Status.Rec.TargetRect.TopLeft;
+  end;
+  RecordAufScript('//define win @win0');
   if Self.Option.Rec.TimeMode=rtmWaittimer then RecordAufScript('settimer');
 end;
 procedure TAdapterForm.EndRecord;
@@ -608,12 +620,6 @@ begin
         if not Self.Option.Rec.BMouse then exit;//没有选择鼠标消息录制则退出
         NowTimeNumber:=GetTimeNumber;
         if NowTimeNumber<Self.Status.Rec.LastRecTime then inc(NowTimeNumber,86400000);//跨子夜时间处理
-        case Self.Option.Rec.TimeMode of
-          rtmSleep:
-            RecordAufScript('sleep '+IntToStr(NowTimeNumber-Self.Status.Rec.LastRecTime));
-          rtmWaittimer:
-            RecordAufScript('waittimer '+IntToStr(NowTimeNumber-Self.Status.Rec.FirstRecTime));
-        end;
         //更新按键状态
         WITH Self.Status.Rec do BEGIN
           CASE Msg.msg OF
@@ -635,10 +641,17 @@ begin
               end;
           END;
         END;
+        if not Status.Rec.TargetRect.Contains(Classes.Point(Msg.wParam,Msg.lParam)) then exit;//如果不符合目标窗体就退出
         MousePos:=Classes.Point(
           Msg.wParam-Self.Status.Rec.MouseOri.x,
           Msg.lParam-Self.Status.Rec.MouseOri.y
         );
+        case Self.Option.Rec.TimeMode of
+          rtmSleep:
+            RecordAufScript('sleep '+IntToStr(NowTimeNumber-Self.Status.Rec.LastRecTime));
+          rtmWaittimer:
+            RecordAufScript('waittimer '+IntToStr(NowTimeNumber-Self.Status.Rec.FirstRecTime));
+        end;
         if Self.Option.Rec.BPushCursor then RecordAufScript('pushcursor '+IntToStr(MousePos.x)+','+IntToStr(MousePos.y));
         if (Self.Option.Rec.BMouseMov) and (MousePos <> Self.Status.Rec.LastMousePos) then
           begin
