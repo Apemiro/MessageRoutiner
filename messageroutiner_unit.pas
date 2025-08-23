@@ -16,7 +16,7 @@ uses
 
 const
 
-  version_number = '0.2.13';
+  version_number = '0.2.14';
 
   RuleCount      = 9;{不能大于31，否则设置保存会出问题}
   SynCount       = 4;{不能大于9，也不推荐9；也不推荐4以下，这会导致自动布局效果很差}
@@ -1853,6 +1853,8 @@ begin
   ScreenViewer:=TMR_WndView.Create(WindowPosPad, ScreensList);
   ScreenViewer.Parent:=WindowPosPad;
   ScreenViewer.Align:=alClient;
+
+  GlobalExpressionList.TryAddExp('desktop',narg('',IntToStr(GetDesktopWindow()),''));
 
 end;
 
