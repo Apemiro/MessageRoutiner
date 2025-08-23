@@ -16,7 +16,7 @@ uses
 
 const
 
-  version_number = '0.2.13';
+  version_number = '0.2.14';
 
   RuleCount      = 9;{不能大于31，否则设置保存会出问题}
   SynCount       = 4;{不能大于9，也不推荐9；也不推荐4以下，这会导致自动布局效果很差}
@@ -1854,6 +1854,8 @@ begin
   ScreenViewer.Parent:=WindowPosPad;
   ScreenViewer.Align:=alClient;
 
+  GlobalExpressionList.TryAddExp('desktop',narg('',IntToStr(GetDesktopWindow()),''));
+
 end;
 
 procedure TForm_Routiner.FormResize(Sender: TObject);
@@ -2607,6 +2609,7 @@ end;
 procedure TForm_Routiner.Merger_Save;
 var str:TStringList;
 begin
+  ForceDirectories('ScreenShot');
   if not MergerAuf.Script.PSW.haltoff then MergerAuf.Script.Stop;
   str:=TStringList.Create;
   try

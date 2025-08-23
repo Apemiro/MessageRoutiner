@@ -335,6 +335,32 @@ begin
   end;
 end;
 
+procedure idle_timer(Sender:TObject);
+var AAuf:TAuf;
+    AufScpt:TAufScript;
+    arv:TAufRamVar;
+    idle_timer:dword;
+begin
+  AufScpt:=Sender as TAufScript;
+  AAuf:=AufScpt.Auf as TAuf;
+  idle_timer:=GetIdleTime();
+  if AAuf.ArgsCount>1 then begin
+    if not AAuf.TryArgToARV(1,4,8,[ARV_FixNum],arv) then exit;
+    dword_to_arv(idle_timer,arv);
+  end else begin
+    AufScpt.writeln('空闲计时器：'+IntToStr(idle_timer));
+  end;
+end;
+
+procedure idle_renew(Sender:TObject);
+var AAuf:TAuf;
+    AufScpt:TAufScript;
+begin
+  AufScpt:=Sender as TAufScript;
+  AAuf:=AufScpt.Auf as TAuf;
+  RenewIdleTime;
+end;
+
 procedure SendString(Sender:TObject);
 var hd:longint;
     str:string;
@@ -1085,6 +1111,9 @@ begin
   AAuf.Script.add_func('ui.options,选项窗体',@ui_options,'@res,prompt,options[, ...]','弹出选项窗体并返回结果');
   AAuf.Script.add_func('ui.setsync,设置同步器窗体',@ui_set_sync_arv,'index,hwnd','设置第index个同步窗体');
 
+  AAuf.Script.add_func('idle.timer,空闲计时器',@idle_timer,'[@res]','返回空闲计时器');
+  AAuf.Script.add_func('idle.renew,重置空闲计时器',@idle_renew,'[@res]','刷新空闲计时器');
+
   AAuf.Script.add_func('pushcursor,光标跳转',@PushCursor,'x,y','改变鼠标指针位置，并将当前位置压栈');
   AAuf.Script.add_func('popcursor,光标返回',@PopCursor,'','将鼠标指针位置还原');
 
@@ -1301,6 +1330,18 @@ begin
   GlobalExpressionList.TryAddExp('k_f10',narg('','121',''));
   GlobalExpressionList.TryAddExp('k_f11',narg('','122',''));
   GlobalExpressionList.TryAddExp('k_f12',narg('','123',''));
+  GlobalExpressionList.TryAddExp('k_f13',narg('','124',''));
+  GlobalExpressionList.TryAddExp('k_f14',narg('','125',''));
+  GlobalExpressionList.TryAddExp('k_f15',narg('','126',''));
+  GlobalExpressionList.TryAddExp('k_f16',narg('','127',''));
+  GlobalExpressionList.TryAddExp('k_f17',narg('','128',''));
+  GlobalExpressionList.TryAddExp('k_f18',narg('','129',''));
+  GlobalExpressionList.TryAddExp('k_f19',narg('','130',''));
+  GlobalExpressionList.TryAddExp('k_f20',narg('','131',''));
+  GlobalExpressionList.TryAddExp('k_f21',narg('','132',''));
+  GlobalExpressionList.TryAddExp('k_f22',narg('','133',''));
+  GlobalExpressionList.TryAddExp('k_f23',narg('','134',''));
+  GlobalExpressionList.TryAddExp('k_f24',narg('','135',''));
   GlobalExpressionList.TryAddExp('k_numlk',narg('','144',''));
   GlobalExpressionList.TryAddExp('k_lshift',narg('','160',''));
   GlobalExpressionList.TryAddExp('k_rshift',narg('','161',''));
