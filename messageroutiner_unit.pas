@@ -2607,6 +2607,7 @@ end;
 procedure TForm_Routiner.Merger_Save;
 var str:TStringList;
 begin
+  ForceDirectories('ScreenShot');
   if not MergerAuf.Script.PSW.haltoff then MergerAuf.Script.Stop;
   str:=TStringList.Create;
   try
